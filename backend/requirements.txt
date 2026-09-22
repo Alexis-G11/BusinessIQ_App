@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+alembic
+asyncpg
+psycopg2-binary
+pydantic-settings
+python-jose[cryptography]
+python-multipart
+pandas
+openpyxl
+statsmodels
+scikit-learn
+stripe
+supabase
+anthropic
