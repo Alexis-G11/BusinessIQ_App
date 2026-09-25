@@ -1,10 +1,11 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     database_url: str
     direct_url: str
     supabase_url: str
-    supabase_annon_key: str
+    supabase_anon_key: str
     supabase_service_role_key: str
     supabase_jwt_secret: str
     stripe_secret_key: str
@@ -14,5 +15,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()
