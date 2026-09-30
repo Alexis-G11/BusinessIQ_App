@@ -26,6 +26,10 @@ class Organization(Base):
 
     # Platform (SaaS) billing — the business owner pays BusinessIQ
     stripe_customer_id: Mapped[str] = mapped_column(String, nullable=True)
+    subscription_status: Mapped[str] = mapped_column(String, default="trialing")
+        trial_ends_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    subscription_status: Mapped[str] = mapped_column(String, default="trialing")
+    trial_ends_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
