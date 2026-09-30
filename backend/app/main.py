@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import customers
+from app.routers import auth
 
 app = FastAPI(title="BusinessIQ API")
 
@@ -12,7 +12,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(customers.router)
+app.include_router(auth.router)
 
 
 @app.get("/health")
