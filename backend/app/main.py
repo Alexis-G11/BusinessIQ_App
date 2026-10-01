@@ -6,7 +6,7 @@ app = FastAPI(title="BusinessIQ API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten to your actual frontend URL(s) before production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

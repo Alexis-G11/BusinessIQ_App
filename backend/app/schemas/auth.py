@@ -2,11 +2,9 @@ import uuid
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, field_validator
 
-# A reasonably complete ISO 4217 set — extend freely, this isn't exhaustive
 VALID_CURRENCIES = {
     "USD", "EUR", "GBP", "RWF", "GHS", "LRD", "NGN", "KES", "ZAR",
     "UGX", "TZS", "XOF", "XAF", "EGP", "MAD", "ETB", "CAD", "AUD",
-    # add more as needed — this list just needs to be complete, not clever
 }
 
 
@@ -28,6 +26,7 @@ class SignUpRequest(BaseModel):
         if v not in VALID_CURRENCIES:
             raise ValueError(f"Unsupported currency code: {v}")
         return v
+
 
 class OrganizationOut(BaseModel):
     id: uuid.UUID
