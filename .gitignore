@@ -1,0 +1,23 @@
+# Python virtual environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets: never commit. Matches at any folder depth.
+.env
+.env.*
+!.env.example
+
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Logs and OS files
+*.log
+.DS_Store
