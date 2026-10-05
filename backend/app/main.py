@@ -63,7 +63,6 @@ async def health_db(db: AsyncSession = Depends(get_db)):
     return {"status": "ok"}
 
 
-# TEMPORARY: lets us test login now. File 9 replaces this with a fuller /me.
-@app.get("/me")
-async def me(user: User = Depends(get_current_user)):
-    return {"id": str(user.id), "email": user.email, "full_name": user.full_name}
+from app.routers import account  # noqa: E402
+
+app.include_router(account.router)
