@@ -7,10 +7,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import get_current_user
 from app.config import settings
 from app.database import engine, get_db
-from app.models.user import User
+from app.routers import auth
 
 logging.basicConfig(
     level=logging.INFO if settings.is_production else logging.DEBUG,
@@ -63,6 +62,5 @@ async def health_db(db: AsyncSession = Depends(get_db)):
     return {"status": "ok"}
 
 
-from app.routers import account  # noqa: E402
-
-app.include_router(account.router)
+# Every business route lives under /api/v1. Add new routers here, one line each.
+app.include_router(auth.router)
