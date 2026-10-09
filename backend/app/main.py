@@ -64,3 +64,4 @@ async def health_db(db: AsyncSession = Depends(get_db)):
 
 # Every business route lives under /api/v1. Add new routers here, one line each.
 app.include_router(products.router)
+app.include_router(auth.router)
