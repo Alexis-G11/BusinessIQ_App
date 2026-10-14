@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import engine, get_db
-from app.routers import auth, products
+from app.routers import auth, products, categories, customers, suppliers
 
 logging.basicConfig(
     level=logging.INFO if settings.is_production else logging.DEBUG,
@@ -63,5 +63,9 @@ async def health_db(db: AsyncSession = Depends(get_db)):
 
 
 # Every business route lives under /api/v1. Add new routers here, one line each.
-app.include_router(products.router)
 app.include_router(auth.router)
+app.include_router(products.router)
+app.include_router(categories.router)
+app.include_router(customers.router)
+app.include_router(suppliers.router)
+
