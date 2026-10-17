@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, ForeignKey, DateTime, Integer
+from sqlalchemy import String, ForeignKey, DateTime, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
@@ -18,3 +18,6 @@ class InventoryTransaction(Base):
     reference_type: Mapped[str] = mapped_column(String, nullable=True)  # "sale" | "purchase" | etc.
     reference_id: Mapped[uuid.UUID] = mapped_column(UUID, nullable=True)  # id of the sale/purchase that caused this
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=True)  # who made this movement
+    reason: Mapped[str] = mapped_column(String, nullable=True)  # reason code for manual adjustments
+    note: Mapped[str] = mapped_column(Text, nullable=True)
