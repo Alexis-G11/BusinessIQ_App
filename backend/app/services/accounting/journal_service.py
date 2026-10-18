@@ -1,9 +1,9 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from fastapi import HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.accounting import JournalEntry, JournalLine
@@ -39,11 +39,16 @@ async def create_and_post_journal_entry(
     source_type: str | None = None,
     source_id: uuid.UUID | None = None,
     posted_by: uuid.UUID | None = None,
+    commit: bool = True,
 ) -> JournalEntry:
     """
     The ONLY function allowed to create a posted journal entry.
     Every sale/purchase/expense/payment that affects the books calls this —
     never insert JournalEntry/JournalLine rows directly anywhere else.
+
+    commit=True  (default): saves immediately, as before.
+    commit=False: only flushes, so the CALLER owns the transaction and can save the
+                  sale, the stock change and this entry together (or none of them).
     """
 
     # Rule 1: at least two lines
@@ -78,7 +83,13 @@ async def create_and_post_journal_entry(
             ),
         )
 
-    # Generate a human-readable entry number, sequential per organization
+    # Serialise numbering per business: without this lock, two simultaneous entries
+    # could both count N rows and both claim number N+1. The lock is released
+    # automatically when the transaction ends (commit or rollback).
+    await db.execute(
+        text("select pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+        {"key": f"journal:{organization_id}"},
+    )
     count_result = await db.execute(
         select(func.count()).select_from(JournalEntry).where(JournalEntry.organization_id == organization_id)
     )
@@ -93,6 +104,7 @@ async def create_and_post_journal_entry(
         source_type=source_type,
         source_id=source_id,
         status="posted",
+        posted_at=datetime.utcnow(),
         posted_by=posted_by,
     )
     db.add(entry)
@@ -110,6 +122,9 @@ async def create_and_post_journal_entry(
             product_id=line.product_id,
         ))
 
-    await db.commit()
-    await db.refresh(entry)
+    if commit:
+        await db.commit()
+        await db.refresh(entry)
+    else:
+        await db.flush()
     return entry
