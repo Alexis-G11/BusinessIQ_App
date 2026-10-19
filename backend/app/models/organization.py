@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, date
-from sqlalchemy import String, DateTime, Date
+from sqlalchemy import String, DateTime, Date, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
@@ -30,6 +30,7 @@ class Organization(Base):
     subscription_status: Mapped[str] = mapped_column(String, default="trialing")
     trial_ends_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     business_size: Mapped[str] = mapped_column(String, nullable=True)  # micro|small|medium
+    tax_rate_bps: Mapped[int] = mapped_column(Integer, default=0) #sales tax in basis points: 800 = 8.00%
     
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

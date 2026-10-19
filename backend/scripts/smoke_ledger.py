@@ -46,10 +46,11 @@ async def count_entries(db, org_id):
 async def ledger_checks():
     async with AsyncSessionLocal() as db:
         org = await db.scalar(select(Organization).order_by(Organization.created_at.desc()).limit(1))
-        rows = (await db.execute(select(Account).where(Account.organization_id == org.id))).scalars()
+        org_id = org.id  # read now: after a rollback the ORM objects are expired and cannot be read
+        rows = (await db.execute(select(Account).where(Account.organization_id == org_id))).scalars()
         accounts = {a.account_code: a for a in rows}
         cash, sales = accounts["1000"], accounts["4000"]
-        before = await count_entries(db, org.id)
+        before = await count_entries(db, org_id)
 
         def balanced():
             return [
@@ -57,8 +58,8 @@ async def ledger_checks():
                 JournalLineInput(sales.id, credit=Decimal("12.50")),
             ]
 
-        first = await create_and_post_journal_entry(db, org.id, date.today(), balanced(), description="smoke test", commit=False)
-        second = await create_and_post_journal_entry(db, org.id, date.today(), balanced(), description="smoke test", commit=False)
+        first = await create_and_post_journal_entry(db, org_id, date.today(), balanced(), description="smoke test", commit=False)
+        second = await create_and_post_journal_entry(db, org_id, date.today(), balanced(), description="smoke test", commit=False)
         check(
             "ledger: entry numbers are consecutive inside one transaction",
             (first.entry_number, second.entry_number),
@@ -68,14 +69,14 @@ async def ledger_checks():
 
         unbalanced = [JournalLineInput(cash.id, debit=Decimal("5")), JournalLineInput(sales.id, credit=Decimal("4"))]
         try:
-            await create_and_post_journal_entry(db, org.id, date.today(), unbalanced, commit=False)
+            await create_and_post_journal_entry(db, org_id, date.today(), unbalanced, commit=False)
             rejected = False
         except HTTPException as exc:
             rejected = exc.status_code == 400
         check("ledger: unbalanced entry is rejected", rejected, True)
 
         await db.rollback()
-        check("ledger: rollback left nothing behind", await count_entries(db, org.id), before)
+        check("ledger: rollback left nothing behind", await count_entries(db, org_id), before)
     await engine.dispose()
 
 

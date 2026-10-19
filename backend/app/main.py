@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import engine, get_db
-from app.routers import auth, products, categories, customers, suppliers, inventory
+from app.routers import auth, products, categories, customers, suppliers, inventory, sales
 
 logging.basicConfig(
     level=logging.INFO if settings.is_production else logging.DEBUG,
@@ -69,4 +69,5 @@ app.include_router(categories.router)
 app.include_router(customers.router)
 app.include_router(suppliers.router)
 app.include_router(inventory.router)
+app.include_router(sales.router)
 

@@ -10,7 +10,6 @@ from app.database import Base
 class Account(Base):
     __tablename__ = "accounts"
     __table_args__ = (
-        UniqueConstraint("organization_id", "account_code", name="uq_account_code_per_org"),
         CheckConstraint(
             "account_type in ('asset','liability','equity','revenue','cost_of_goods_sold','expense','other_income','other_expense')",
             name="ck_account_type_valid",
@@ -35,6 +34,7 @@ class JournalEntry(Base):
     __tablename__ = "journal_entries"
     __table_args__ = (
         CheckConstraint("status in ('draft','posted','voided')", name="ck_journal_status_valid"),
+        UniqueConstraint("organization_id", "entry_number", name="uq_journal_entries_org_number"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
