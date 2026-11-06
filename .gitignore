@@ -1,0 +1,51 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.expo/
+.next/
+coverage/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE settings
+.vscode/
+.idea/
+
+# Large archive files
+*.zip
+
+*.tsbuildinfo
