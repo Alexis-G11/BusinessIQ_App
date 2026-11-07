@@ -13,7 +13,7 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-AUTH-007 | Backend resolves owner/role permissions; client role claims are not authority | PRESENT—UNVERIFIED | Role-escalation tests |
 | FR-AUTH-008 | No rate-limit middleware found | NOT IMPLEMENTED | Rate-limit and abuse tests |
 | FR-BIZ-001 | `POST /organizations` creates an additional organization for a verified user | PARTIAL | API/database transaction, duplicate retry, and ownership tests |
-| FR-BIZ-002 | Organization creation accepts business type, industry, country code, currency, timezone, address, contacts, and fiscal-year date; signup and additional-business setup now default to RW/RWF/Africa-Kigali while allowing supported locale choices | PARTIAL | Frontend does not yet collect fiscal-year start; test validation and settings-update lifecycle |
+| FR-BIZ-002 | Organization creation accepts business type, industry, country code, currency, timezone, address, contacts, and fiscal-year date; signup and additional-business setup now default to RW/RWF/Africa-Kigali. Owner/admin business settings edit profile, address, contacts, fiscal-year start, business timezone, and tax identifier. Country/currency edits are deferred to a conversion workflow. | PARTIAL | Execute settings schema/API tests; support safe country/currency conversion and verify tax/journal effects |
 | FR-BIZ-003 | Creation seeds an owner membership, owner role, chart of accounts, trial decision, and independent trial | PARTIAL | Isolated database atomicity test; chart template remains fixed, not configurable |
 | FR-BIZ-004 | `GET /organizations` returns only the user's memberships; Expo picker persists a selected ID and API requests validate it | PARTIAL | Two-business switch and altered-header negative tests |
 | FR-BIZ-005 | API organization context checks membership | PRESENT—UNVERIFIED | Every route and altered-ID negative tests |
@@ -41,8 +41,8 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-DS-011–012 | No cross-tenant training/labeling governance implementation found | NOT IMPLEMENTED | Consent/governance and explicit output labels |
 | FR-AI-001–008 | Client keyword rules over loaded data; no backend assistant tools | NOT IMPLEMENTED | Permission-checked tools, grounded answers, injection and confirmation tests |
 | FR-FILE-001–005 | No file service/storage integration found | NOT IMPLEMENTED | Private storage, validation, scanning, access audit and tests |
-| FR-ADM-001 | `/auth/me` profile update exists; business/team admin absent | PARTIAL | Business settings and lifecycle APIs |
-| FR-ADM-002–005 | No general audit event or support-access system found | NOT IMPLEMENTED | Append-only events, activity history, purpose-bound support tests |
+| FR-ADM-001 | `/auth/me` supports account profile updates; owner/admin APIs and Expo screens update business identity/contact/accounting settings and manage team members | PARTIAL | Execute role/tenant update tests; add administrative lifecycle and data-export controls |
+| FR-ADM-002–005 | Immutable tenant audit events and an owner/admin activity screen now record organization creation, profile field changes, invitation creation/revocation/acceptance, membership role changes, and removals. Event details avoid storing contact values. | PARTIAL | Execute migration/trigger/RLS/API tests; add audit events for financial/operational changes, retention/export, and purpose-bound support-access controls |
 | NFR-SEC-001–010 | Token checks, CORS configuration, generic error handler; no deployment proof or security pipeline | PARTIAL | HTTPS, secrets, rate limits, scans, pen test, secure uploads and evidence |
 | AT-001–002 | One-org signup/listing source exists; no create/switch test suite | NOT TESTED | Two-business isolation acceptance tests |
 | AT-003–005 | Billing/trial source contradicts SRS trial behavior | NOT TESTED | Independent billing and expiry scenarios |

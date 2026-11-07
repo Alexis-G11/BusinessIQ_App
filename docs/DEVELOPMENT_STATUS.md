@@ -2,6 +2,13 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: business settings and audit history
+
+- Implemented tenant-scoped GET/PATCH business settings requiring `settings.manage`. Owners/admins can update business identity, contacts, tax identifier, fiscal-year start, and IANA timezone. Country/currency are deliberately read-only until transaction conversion is designed.
+- Wired the existing Settings → Business Profile link to a new Expo form. Added fiscal-year and timezone fields, profile/contact fields, and locale disclosure. Added an owner/admin Business Activity page and a tenant-scoped `audit.view` feed.
+- Added an additive migration for tenant audit events with actor/action/target, low-PII changed-field details, RLS entitlement guard, and a trigger that rejects updates/deletes. Organization creation, settings updates, and invitation/membership lifecycle actions are recorded in the same transaction as the business change.
+- Added six database-free settings route/schema tests and two audit feed/permission contract tests. They cannot run on this host because FastAPI/SQLAlchemy/Pydantic are unavailable. Verification completed: Expo TypeScript reports zero diagnostics across 72 files; 17 selected backend invitation/money/report unit tests pass; Python AST parsing passes for 92 backend/migration/test files; the migration graph has 20 revisions, one head (`9e7a2c41d5b0`), and no missing parents; `git diff --check` passes. The 8 new route/schema tests, migration, trigger, RLS, and full UI behavior remain **NOT VERIFIED**.
+
 ## Latest increment: currency-aware amount entry and display
 
 - Purchase defaults and product-derived unit costs now produce valid values for the selected currency exponent. Purchase totals, POS paid/discount placeholders, product and expense price placeholders, payment placeholders, and invoice totals use the business precision instead of hard-coded two-decimal formatting.

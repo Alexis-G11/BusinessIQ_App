@@ -159,12 +159,52 @@ export interface BackendOrganizationCreate {
   fiscal_year_start?: string | null;
 }
 
+export type BackendOrganizationProfile = BackendOrganizationMembership['organization'];
+
+export interface BackendOrganizationSettingsUpdate {
+  name: string;
+  legal_name: string | null;
+  business_type: 'sole_proprietor' | 'llc' | 'corporation' | 'partnership' | 'other' | null;
+  industry: string | null;
+  business_size: 'micro' | 'small' | 'medium' | null;
+  timezone: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  tax_identifier: string | null;
+  fiscal_year_start: string | null;
+}
+
 export const backendOrganizationApi = {
   list(): Promise<BackendOrganizationMembership[]> {
     return backendRequest('/organizations');
   },
   create(payload: BackendOrganizationCreate): Promise<BackendOrganizationMembership> {
     return backendRequest('/organizations', { method: 'POST', body: payload });
+  },
+  getSettings(organizationId: string): Promise<BackendOrganizationProfile> {
+    return backendRequest('/organizations/settings', { organizationId });
+  },
+  updateSettings(organizationId: string, payload: BackendOrganizationSettingsUpdate): Promise<BackendOrganizationProfile> {
+    return backendRequest('/organizations/settings', { method: 'PATCH', organizationId, body: payload });
+  },
+};
+
+export interface BackendAuditEvent {
+  id: string;
+  organization_id: string;
+  actor_user_id: string;
+  actor_name: string;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  details: Record<string, unknown>;
+  occurred_at: string;
+}
+
+export const backendAuditApi = {
+  listEvents(organizationId: string, limit = 50): Promise<BackendAuditEvent[]> {
+    return backendRequest(`/audit/events?limit=${limit}`, { organizationId });
   },
 };
 

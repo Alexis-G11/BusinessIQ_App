@@ -30,6 +30,7 @@ From `apps/backend/`, install `requirements-dev.txt` and run `python -m pytest t
 - Test switching between two owned workspaces and one joined workspace; verify each request's organization header and deny an altered non-member ID.
 - Test account profile reads/updates without a selected organization; assert phone changes cannot bypass Supabase verification.
 - Test membership list/role-change/removal authorization and tenant scope; protect owner and self-removal; verify revoked memberships disappear from every organization lookup; test invitation-driven reinstatement and event history under concurrent requests.
+- Test business-settings schema validation, settings.manage authorization, tenant-scoped update locking, fiscal-date/timezone validation, immutable audit insertion, audit.view scoping, and the audit trigger/RLS on PostgreSQL.
 - Upgrade a disposable PostgreSQL database through the trial-decision migration, verify existing-trial backfill, RLS default deny, and downgrade/forward-fix behavior.
 
 These scenarios remain planned. This increment has pure trial-window tests and frontend typecheck/build evidence only; the new routes and migration have not been exercised against PostgreSQL.

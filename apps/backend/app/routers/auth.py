@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import AuthPayload, get_auth_payload
 from app.database import get_db
 from app.models.organization import Organization
+from app.models.audit import OrganizationAuditEvent
 from app.models.role import Role, UserRole
 from app.models.trial_decision import OrganizationTrialDecision
 from app.models.user import OrganizationMembershipEvent, OrganizationUser, PhoneTrialClaim, User
@@ -258,6 +259,14 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
             actor_user_id=user.id,
             event_type="created",
             new_role_id=owner_role.id,
+        ))
+        db.add(OrganizationAuditEvent(
+            organization_id=org.id,
+            actor_user_id=user.id,
+            action="organization.created",
+            target_type="organization",
+            target_id=org.id,
+            details={"source": "signup"},
         ))
 
         # One transaction seeds the new tenant's chart along with its owner and trial.

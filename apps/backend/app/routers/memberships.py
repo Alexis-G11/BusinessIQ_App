@@ -27,6 +27,7 @@ from app.services.invitations import (
     invitation_expiry,
     issue_invitation_token,
 )
+from app.services.audit import record_audit_event
 
 
 router = APIRouter(prefix="/api/v1/memberships", tags=["memberships"])
@@ -115,6 +116,15 @@ async def update_member_role(
             previous_role_id=previous_role_id,
             new_role_id=role.id,
         ))
+        record_audit_event(
+            db,
+            organization_id=ctx.organization_id,
+            actor_user_id=ctx.user.id,
+            action="membership.role_changed",
+            target_type="membership",
+            target_id=membership.id,
+            details={"previous_role_id": str(previous_role_id) if previous_role_id else None, "new_role": role.name},
+        )
     await db.commit()
     return MembershipSummary(
         id=membership.id,
@@ -165,6 +175,15 @@ async def remove_member(
         previous_role_id=user_role.role_id if user_role else None,
         new_role_id=None,
     ))
+    record_audit_event(
+        db,
+        organization_id=ctx.organization_id,
+        actor_user_id=ctx.user.id,
+        action="membership.revoked",
+        target_type="membership",
+        target_id=membership.id,
+        details={"member_user_id": str(membership.user_id)},
+    )
     await db.commit()
     return Response(status_code=204)
 
@@ -224,6 +243,15 @@ async def create_invitation(
         expires_at=invitation_expiry(now),
     )
     db.add(invitation)
+    record_audit_event(
+        db,
+        organization_id=ctx.organization_id,
+        actor_user_id=ctx.user.id,
+        action="invitation.created",
+        target_type="invitation",
+        target_id=invitation.id,
+        details={"role": body.role},
+    )
     try:
         await db.commit()
     except IntegrityError as exc:
@@ -289,6 +317,14 @@ async def revoke_invitation(
     if invitation.revoked_at is None:
         invitation.revoked_at = datetime.now(timezone.utc).replace(tzinfo=None)
         invitation.revoked_by_user_id = ctx.user.id
+        record_audit_event(
+            db,
+            organization_id=ctx.organization_id,
+            actor_user_id=ctx.user.id,
+            action="invitation.revoked",
+            target_type="invitation",
+            target_id=invitation.id,
+        )
         await db.commit()
     return Response(status_code=204)
 
@@ -377,6 +413,15 @@ async def accept_invitation(
             previous_role_id=previous_role_id,
             new_role_id=role.id,
         ))
+        record_audit_event(
+            db,
+            organization_id=invitation.organization_id,
+            actor_user_id=user.id,
+            action=f"membership.{event_type}",
+            target_type="membership",
+            target_id=membership.id,
+            details={"role": role.name},
+        )
         await db.commit()
     except IntegrityError as exc:
         await db.rollback()

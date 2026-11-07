@@ -8,16 +8,69 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import get_current_user
 from app.database import get_db
 from app.models.organization import Organization
+from app.models.audit import OrganizationAuditEvent
 from app.models.role import Role, UserRole
 from app.models.trial_decision import OrganizationTrialDecision
 from app.models.user import OrganizationMembershipEvent, OrganizationUser, User
 from app.money import currency_exponent
-from app.schemas.organizations import OrganizationCreate, OrganizationMembershipOut
+from app.schemas.auth import OrganizationOut
+from app.schemas.organizations import OrganizationCreate, OrganizationMembershipOut, OrganizationSettingsUpdate
+from app.permissions import OrgContext, require_permission
 from app.services.accounting.chart_of_accounts_service import seed_default_chart_of_accounts
 from app.subscriptions import trial_expiry
 
 router = APIRouter(prefix="/api/v1/organizations", tags=["organizations"])
 logger = logging.getLogger(__name__)
+
+
+@router.get("/settings", response_model=OrganizationOut)
+async def get_organization_settings(
+    ctx: OrgContext = Depends(require_permission("settings.manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    organization = await db.get(Organization, ctx.organization_id)
+    if organization is None:
+        raise HTTPException(status_code=404, detail="Business not found")
+    return organization
+
+
+@router.patch("/settings", response_model=OrganizationOut)
+async def update_organization_settings(
+    payload: OrganizationSettingsUpdate,
+    ctx: OrgContext = Depends(require_permission("settings.manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    changes = payload.model_dump(exclude_unset=True)
+    if not changes:
+        raise HTTPException(status_code=422, detail="Provide at least one business setting to update")
+
+    organization = await db.scalar(
+        select(Organization)
+        .where(Organization.id == ctx.organization_id)
+        .with_for_update()
+    )
+    if organization is None:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    changed_fields = sorted(changes)
+    if "address" in changes:
+        address = changes.pop("address")
+        organization.address = {"formatted": address} if address else None
+    for field, value in changes.items():
+        setattr(organization, field, str(value) if field == "email" and value is not None else value)
+
+    db.add(OrganizationAuditEvent(
+        organization_id=organization.id,
+        actor_user_id=ctx.user.id,
+        action="organization.settings.updated",
+        target_type="organization",
+        target_id=organization.id,
+        details={"changed_fields": changed_fields},
+    ))
+
+    await db.commit()
+    await db.refresh(organization)
+    return organization
 
 
 @router.get("", response_model=list[OrganizationMembershipOut])
@@ -111,6 +164,14 @@ async def create_organization(
             actor_user_id=user.id,
             event_type="created",
             new_role_id=owner_role.id,
+        ))
+        db.add(OrganizationAuditEvent(
+            organization_id=organization.id,
+            actor_user_id=user.id,
+            action="organization.created",
+            target_type="organization",
+            target_id=organization.id,
+            details={"source": "additional_business_setup"},
         ))
         db.add(
             OrganizationTrialDecision(

@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Business settings and audit history
+
+- Added owner/admin settings read/update APIs and an Expo Business Profile page for business identity, contacts, timezone, tax identifier and fiscal-year start. Currency and country remain read-only until safe transaction conversion is designed.
+- Added a tenant-scoped audit-event table, RLS entitlement guard, immutable database trigger, `audit.view` API and Business Activity page. The initial event coverage includes business creation, settings updates and invitation/membership lifecycle actions; details store changed field names rather than contact values.
+- Added route/schema and audit feed permission contract tests. Backend runtime and database verification remain outstanding in this environment.
+
 ## 2026-11-07 — Currency-aware amount entry and display
 
 - Removed hard-coded two-decimal defaults from purchase amount entry and product cost selection. Purchase and invoice totals and POS amount placeholders now reflect the selected organization's currency exponent; product, expense, and payment input placeholders do likewise.
