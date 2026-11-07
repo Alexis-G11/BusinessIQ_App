@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Currency-aware amount entry and display
+
+- Removed hard-coded two-decimal defaults from purchase amount entry and product cost selection. Purchase and invoice totals and POS amount placeholders now reflect the selected organization's currency exponent; product, expense, and payment input placeholders do likewise.
+- Currency formatting fallbacks retain the currency code and fraction precision rather than silently rendering dollar amounts.
+- Verified with the selected backend money/report/invitation unit tests and Expo TypeScript. Full transaction-currency and FX support remains outstanding.
+
 ## 2026-11-07 — USB and Bluetooth HID barcode input
 
 - Added keyboard-wedge input to product creation and the sales cart. Standard USB and OS-paired Bluetooth HID readers can enter alphanumeric barcodes and finish a scan with Enter; POS scans add a matching active product and repeated scans increment quantity, without a vendor SDK or network permission.

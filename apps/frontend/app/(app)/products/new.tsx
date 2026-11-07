@@ -96,10 +96,10 @@ export default function NewProductScreen() {
         <Input label="Description" value={form.description} onChangeText={(v) => update('description', v)} placeholder="Product description" multiline numberOfLines={3} />
         <View style={styles.row}>
           <View style={styles.halfInput}>
-            <Input label="Cost price" value={form.cost_price} onChangeText={(v) => update('cost_price', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness.currency}`} />
+            <Input label="Cost price" value={form.cost_price} onChangeText={(v) => update('cost_price', v)} placeholder={currentBusiness.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness.currency}`} />
           </View>
           <View style={styles.halfInput}>
-            <Input label="Selling price *" value={form.selling_price} onChangeText={(v) => update('selling_price', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness.currency}`} />
+            <Input label="Selling price *" value={form.selling_price} onChangeText={(v) => update('selling_price', v)} placeholder={currentBusiness.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness.currency}`} />
           </View>
         </View>
         <Input label="Reorder threshold" value={form.reorder_threshold} onChangeText={(v) => update('reorder_threshold', v)} placeholder="5" keyboardType="numeric" hint="Alert when stock drops to this level" />

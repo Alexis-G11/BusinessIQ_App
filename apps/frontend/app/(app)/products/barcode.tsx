@@ -192,10 +192,10 @@ export default function BarcodeAddScreen() {
           <Input label="SKU" value={form.sku} onChangeText={(v) => update('sku', v)} placeholder="SKU-007" />
           <View style={styles.row}>
             <View style={styles.halfInput}>
-              <Input label="Cost price" value={form.cost_price} onChangeText={(v) => update('cost_price', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
+          <Input label="Cost price" value={form.cost_price} onChangeText={(v) => update('cost_price', v)} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
             </View>
             <View style={styles.halfInput}>
-              <Input label="Selling price *" value={form.selling_price} onChangeText={(v) => update('selling_price', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
+          <Input label="Selling price *" value={form.selling_price} onChangeText={(v) => update('selling_price', v)} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
             </View>
           </View>
           <Input label="Unit" value={form.unit} onChangeText={(v) => update('unit', v)} placeholder="piece, kg, liter..." />

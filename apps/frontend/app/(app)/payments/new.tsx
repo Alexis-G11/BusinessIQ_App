@@ -92,7 +92,7 @@ export default function NewPaymentScreen() {
           </View>
         )}
 
-        <Input label="Amount *" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="numeric" hint={currentBusiness?.currency} />
+        <Input label="Amount *" value={amount} onChangeText={setAmount} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={currentBusiness?.currency} />
 
         <Text style={styles.label}>Payment Method</Text>
         <View style={styles.methodRow}>

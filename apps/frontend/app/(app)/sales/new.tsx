@@ -254,7 +254,7 @@ export default function NewSaleScreen() {
                 <Text style={styles.summaryLabel}>Subtotal</Text>
                 <Text style={styles.summaryValue}>{formatCurrency(subtotal, currency, currencyExponent)}</Text>
               </View>
-              <Input label="Discount" value={discount} onChangeText={setDiscount} placeholder="0.00" keyboardType="numeric" hint={`In ${currency}`} />
+              <Input label="Discount" value={discount} onChangeText={setDiscount} placeholder={currencyExponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currency}`} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Tax (business settings)</Text>
                 <Text style={styles.summaryValue}>{quote ? formatCurrency(quote.tax_cents / 100, currency, currencyExponent) : '—'}</Text>
@@ -302,7 +302,7 @@ export default function NewSaleScreen() {
                 label="Amount Paid"
                 value={paidAmount}
                 onChangeText={setPaidAmount}
-                placeholder={quote ? (quote.total_cents / 100).toFixed(2) : '0.00'}
+                placeholder={quote ? (quote.total_cents / 100).toFixed(currencyExponent) : currencyExponent === 0 ? '0' : '0.00'}
                 keyboardType="numeric"
                 hint={`Leave empty for full payment in ${currency}`}
               />

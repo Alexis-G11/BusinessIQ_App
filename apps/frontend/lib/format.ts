@@ -7,7 +7,7 @@ export function formatCurrency(amount: number, currency = 'USD', currencyExponen
       maximumFractionDigits: currencyExponent,
     }).format(amount);
   } catch {
-    return `$${amount.toFixed(2)}`;
+    return `${currency} ${amount.toFixed(currencyExponent)}`;
   }
 }
 
@@ -20,9 +20,9 @@ export function formatCompactCurrency(amount: number, currency = 'USD', currency
       maximumFractionDigits: currencyExponent,
     }).format(amount);
   } catch {
-    if (Math.abs(amount) >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`;
-    if (Math.abs(amount) >= 1_000) return `$${(amount / 1_000).toFixed(1)}K`;
-    return `$${amount.toFixed(0)}`;
+    if (Math.abs(amount) >= 1_000_000) return `${currency} ${(amount / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(amount) >= 1_000) return `${currency} ${(amount / 1_000).toFixed(1)}K`;
+    return `${currency} ${amount.toFixed(currencyExponent)}`;
   }
 }
 

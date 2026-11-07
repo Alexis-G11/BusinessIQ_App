@@ -97,7 +97,7 @@ export default function NewExpenseScreen() {
 
       <Card>
         <Input label="Description *" value={form.description} onChangeText={(v) => update('description', v)} placeholder="e.g. Office rent for October" />
-        <Input label="Amount *" value={form.amount} onChangeText={(v) => update('amount', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
+        <Input label="Amount *" value={form.amount} onChangeText={(v) => update('amount', v)} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
 
         <Text style={styles.label}>Category</Text>
         <View style={styles.chipRow}>

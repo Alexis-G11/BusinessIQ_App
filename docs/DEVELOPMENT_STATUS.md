@@ -2,6 +2,13 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: currency-aware amount entry and display
+
+- Purchase defaults and product-derived unit costs now produce valid values for the selected currency exponent. Purchase totals, POS paid/discount placeholders, product and expense price placeholders, payment placeholders, and invoice totals use the business precision instead of hard-coded two-decimal formatting.
+- Currency formatting fallbacks now preserve the currency code and selected exponent instead of assuming a dollar sign and two fraction digits.
+- The underlying operational amount model remains a legacy integer scale of 100 per major unit; this does not add transaction-currency snapshots, FX conversion, or currency settlement support.
+- Verification: 17 selected backend money/report/invitation tests pass; Expo TypeScript reports zero diagnostics across 70 files. No mobile/web runtime or database was available for UI/accounting integration tests.
+
 ## Increment: managed membership lifecycle
 
 - Added an additive migration for soft-revocable memberships and tenant/time-indexed membership events. A PostgreSQL trigger rejects event updates/deletes. Member access is revoked without deleting the membership or its historical financial attribution; the actor is recorded. Existing organization and authentication lookup paths now ignore revoked memberships. RLS entitlement guards now cover invitation and membership-event rows and the helper checks active membership.

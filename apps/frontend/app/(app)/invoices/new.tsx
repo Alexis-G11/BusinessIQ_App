@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/States';
 import { invoiceApi } from '@/lib/api';
+import { formatCurrency } from '@/lib/format';
 import { useAuth } from '@/context/AuthContext';
 import { colors, spacing, fontSizes, fontWeights } from '@/theme';
 import { Search } from 'lucide-react-native';
@@ -136,13 +137,13 @@ export default function NewInvoiceScreen() {
 
       <Card>
         <View style={styles.row}>
-          <View style={styles.half}><Input label="Discount" value={discount} onChangeText={setDiscount} placeholder="0.00" keyboardType="numeric" hint={currentBusiness?.currency} /></View>
-          <View style={styles.half}><Input label="Tax" value={tax} onChangeText={setTax} placeholder="0.00" keyboardType="numeric" hint={currentBusiness?.currency} /></View>
+          <View style={styles.half}><Input label="Discount" value={discount} onChangeText={setDiscount} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={currentBusiness?.currency} /></View>
+          <View style={styles.half}><Input label="Tax" value={tax} onChangeText={setTax} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={currentBusiness?.currency} /></View>
         </View>
         <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional notes for the customer" multiline numberOfLines={2} />
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{total.toFixed(2)} {currentBusiness?.currency}</Text>
+          <Text style={styles.totalValue}>{formatCurrency(total, currentBusiness?.currency, currentBusiness?.currency_exponent ?? 2)}</Text>
         </View>
       </Card>
 
