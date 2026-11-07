@@ -52,7 +52,7 @@ export interface Business {
   tax_id: string | null;
   fiscal_year_start: string | null;
   logo_url: string | null;
-  subscription_plan: SubscriptionPlan;
+  subscription_plan: SubscriptionPlan | null;
   subscription_status: SubscriptionStatus;
   trial_ends_at: string | null;
   created_at: string;

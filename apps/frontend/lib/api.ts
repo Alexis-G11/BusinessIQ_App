@@ -234,7 +234,7 @@ export const businessApi = {
       tax_id: null,
       fiscal_year_start: null,
       logo_url: null,
-      subscription_plan: 'trial',
+      subscription_plan: null,
       subscription_status: status,
       trial_ends_at: org.trial_ends_at,
       created_at: org.created_at,
@@ -375,7 +375,7 @@ export const inventoryApi = {
 
 export const subscriptionApi = {
   async getStatus(businessId: string): Promise<{
-    plan: SubscriptionPlan;
+    plan: SubscriptionPlan | null;
     status: SubscriptionStatus;
     trial_ends_at: string | null;
     daysRemaining: number;
@@ -385,13 +385,19 @@ export const subscriptionApi = {
     const { organization } = await backendAuthApi.me();
     if (organization.id !== businessId) throw new Error('Requested business does not match the active BusinessIQ organization.');
 
+    const status = organization.subscription_status;
+    const trialEndsAt = organization.trial_ends_at;
+    const trialEndMs = trialEndsAt ? Date.parse(trialEndsAt) : Number.NaN;
+    const remainingMs = trialEndMs - Date.now();
+    const isTrialActive = status === 'trialing' && remainingMs > 0;
+
     return {
-      plan: 'free',
-      status: 'active',
-      trial_ends_at: null,
-      daysRemaining: 0,
-      isTrialActive: false,
-      hasAccess: true,
+      plan: null,
+      status,
+      trial_ends_at: trialEndsAt,
+      daysRemaining: isTrialActive ? Math.ceil(remainingMs / 86_400_000) : 0,
+      isTrialActive,
+      hasAccess: status === 'active' || isTrialActive,
     };
   },
 

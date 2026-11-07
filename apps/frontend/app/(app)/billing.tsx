@@ -10,7 +10,7 @@ import { colors, spacing, fontSizes, fontWeights, radius } from '@/theme';
 import { CreditCard, Check, Clock, Lock, Sparkles, AlertTriangle } from 'lucide-react-native';
 
 interface SubStatus {
-  plan: string;
+  plan: string | null;
   status: string;
   trial_ends_at: string | null;
   daysRemaining: number;

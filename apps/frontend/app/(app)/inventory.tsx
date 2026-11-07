@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   productName: { fontSize: fontSizes.sm, fontWeight: fontWeights.semibold, color: colors.text } as any,
   productSku: { fontSize: fontSizes.xs, color: colors.textSecondary, marginTop: 2 } as any,
   stockValue: { fontSize: fontSizes.sm, color: colors.text, fontWeight: fontWeights.medium } as any,
-  adjustLink: { fontSize: fontSizes.xs, color: colors.primary, fontWeight: fontWeights.semibold, marginTop: 4 } as any,
+  adjustLink: { fontSize: fontSizes.xs, color: colors.blue, fontWeight: fontWeights.semibold, marginTop: 4 } as any,
   stockWarning: { flexDirection: 'row', alignItems: 'center', gap: 2 } as any,
   stockWarningText: { fontSize: fontSizes.xs, fontWeight: fontWeights.semibold } as any,
 });

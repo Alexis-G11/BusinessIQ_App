@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
   label: { fontSize: fontSizes.sm, color: colors.text, fontWeight: fontWeights.semibold, marginTop: spacing.md, marginBottom: spacing.sm },
   reasons: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   reason: { borderWidth: 1, borderColor: colors.border, borderRadius: 20, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  reasonSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  reasonSelected: { backgroundColor: colors.blue, borderColor: colors.blue },
   reasonText: { color: colors.textSecondary, fontSize: fontSizes.sm, textTransform: 'capitalize' },
   reasonTextSelected: { color: colors.textInverse },
   hint: { color: colors.textSecondary, fontSize: fontSizes.xs, marginVertical: spacing.md },
-  errorBox: { backgroundColor: colors.dangerLight, borderRadius: 8, padding: spacing.md },
+  errorBox: { backgroundColor: colors.dangerBg, borderRadius: 8, padding: spacing.md },
   errorText: { color: colors.danger, padding: spacing.lg },
 });

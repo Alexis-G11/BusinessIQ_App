@@ -95,7 +95,7 @@ export function TopBar({ onMobileMenu }: TopBarProps) {
                   <Building2 size={18} color={colors.text} />
                   <View style={styles.bizItemInfo}>
                     <Text style={styles.bizItemName}>{biz.name}</Text>
-                    <Text style={styles.bizItemMeta}>{biz.currency} · {biz.subscription_plan}</Text>
+                    <Text style={styles.bizItemMeta}>{biz.currency} · {biz.subscription_plan ?? biz.subscription_status}</Text>
                   </View>
                   {biz.id === currentBusiness?.id && <Check size={18} color={colors.blue} />}
                 </TouchableOpacity>
