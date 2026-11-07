@@ -5,7 +5,7 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | SRS IDs | Existing implementation evidence | Status | Required evidence or gap |
 |---|---|---|---|
 | FR-AUTH-001 | Signup request and backend user creation | PARTIAL | Email verification is bypassed by confirmed-user creation; flow tests |
-| FR-AUTH-002 | No enforced email-verification gate in current signup | NOT IMPLEMENTED | Verify email before protected access |
+| FR-AUTH-002 | Supabase Auth email is administratively marked confirmed during signup | NOT IMPLEMENTED | Replace confirmation bypass with verified email flow and protected-access gate |
 | FR-AUTH-003 | Supabase phone OTP and completion endpoint | PARTIAL | SMS setup and expiry/replay/rate-limit tests |
 | FR-AUTH-004 | `app/auth.py` validates token signature, issuer, audience, and expiry | PRESENT—UNVERIFIED | JWT negative-path integration tests |
 | FR-AUTH-005 | Supabase recovery UI and sign-out; backend token validation | PARTIAL | Session revocation, recovery and account lifecycle tests |
@@ -19,7 +19,7 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-BIZ-005 | API organization context checks membership | PRESENT—UNVERIFIED | Every route and altered-ID negative tests |
 | FR-BIZ-006 | No invitation or team-management backend routes | NOT IMPLEMENTED | Invite lifecycle and permission tests |
 | FR-BIZ-007 | No membership removal/lifecycle workflow | NOT IMPLEMENTED | Attribution retention and revocation tests |
-| FR-BILL-001–005 | Phone-claim/trial migration and verification code exist; current signup sets active/no trial | PARTIAL | Correct seven-day eligibility, expiry, abuse and recovery policy |
+| FR-BILL-001–005 | Signup creates pending-verification organizations; confirmed phone starts a seven-day trial; API permission dependencies enforce verified phone and active/trial status | PARTIAL | Add API integration tests for signup, one-time phone eligibility, expiry and recovery; email confirmation remains a gap |
 | FR-BILL-006–013 | Organization subscription placeholders; frontend status stub; no checkout/webhooks | NOT IMPLEMENTED | Per-business subscription model, signed durable events, reconciliation and tests |
 | FR-OPS-001–004 | Product/category APIs and inventory movement/adjustment APIs | PARTIAL | Archive/search/bulk/transfer/opening-balance breadth and invariants |
 | FR-OPS-005–008 | Purchase and supplier services update stock/accounting | PARTIAL | Orders, partial receipt, bulk imports, concurrency and override audit |

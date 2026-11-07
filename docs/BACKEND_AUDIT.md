@@ -60,9 +60,11 @@ No claim of production readiness is made.
 
 ## Authentication and trial increment
 
-Signup now validates an international phone number and a password containing at least eight characters, a letter, and a number. The email callback is explicitly configured for the Expo frontend. Phone verification is performed by Supabase Auth; verified phone claims are unique and durable, and legacy phone values are backfilled as already claimed. New organizations remain pending until email and phone are verified, when a seven-day trial starts. Previously started trials are not reset.
+Signup validates an international phone number and a password containing at least eight characters, a letter, and a number. Phone verification is performed by Supabase Auth; verified phone claims are unique and durable, and legacy phone values are backfilled as already claimed. New organizations remain pending until phone verification, when a seven-day trial starts. Signup still administratively confirms email, so email verification is not enforced and remains a requirement gap. Previously started trials are not reset.
 
-FastAPI business routes now deny access until phone verification and while a trial is expired or inactive. The backend Alembic migration also enables RLS on the existing `organization_id` tables and denies direct Supabase client access to those tables, avoiding the separate, unapplied Bolt `business_id` schema. The API's database role bypasses RLS as configured. SMS delivery still requires enabling phone authentication and configuring an SMS provider in the Supabase Dashboard; see [AUTHENTICATION_PHONE_TRIAL_SETUP.md](./AUTHENTICATION_PHONE_TRIAL_SETUP.md).
+FastAPI business routes now deny access until phone verification and while a trial is expired or inactive. The backend Alembic migration also enables RLS on the existing `organization_id` tables and denies direct Supabase client access to those tables, avoiding the separate, unapplied Bolt `business_id` schema. The API enforces the same phone and subscription conditions in its permission dependency. The API's database role bypasses RLS as configured. SMS delivery still requires enabling phone authentication and configuring an SMS provider in the Supabase Dashboard; see [AUTHENTICATION_PHONE_TRIAL_SETUP.md](./AUTHENTICATION_PHONE_TRIAL_SETUP.md).
+
+The access predicate has pure boundary tests (verified/unverified, active/trialing/inactive, and expiry). Full signup and protected-route integration tests remain outstanding; the configured Supabase and database migration were not exercised for this increment.
 
 Signup confirmation and SMS delivery require live Supabase configuration and were not validated end to end here. The backend migration was not applied to the configured database.
 

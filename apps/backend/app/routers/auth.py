@@ -197,13 +197,13 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
             country=payload.country,
             currency=payload.currency,
             timezone=payload.timezone,
-            subscription_status="active",
+            subscription_status="pending_verification",
             trial_ends_at=None,
         )
         user = User(
             id=supabase_user_id,  # same ID as the Supabase login
             full_name=payload.full_name.strip(),
-            phone_number=payload.phone_number,
+            pending_phone_number=payload.phone_number,
             email=email,
         )
         db.add_all([org, user])
@@ -252,7 +252,7 @@ async def complete_signup(
         if user.email.lower() != auth_user.email.lower():
             raise HTTPException(status_code=403, detail="Account setup is not complete")
         return {
-            "ready": True,
+            "ready": user.phone_verified,
             "phone_number": user.phone_number or user.pending_phone_number,
         }
 
@@ -265,7 +265,7 @@ async def complete_signup(
         raise HTTPException(status_code=403, detail="Account setup is not complete")
     if existing_user.id == payload.user_id:
         return {
-            "ready": True,
+            "ready": existing_user.phone_verified,
             "phone_number": existing_user.phone_number or existing_user.pending_phone_number,
         }
     if existing_user.email.lower() != auth_user.email.lower():
@@ -283,7 +283,7 @@ async def complete_signup(
     if linked_user is None:
         raise HTTPException(status_code=500, detail="Could not complete account setup. Please try again.")
     return {
-        "ready": True,
+        "ready": linked_user.phone_verified,
         "phone_number": linked_user.phone_number or linked_user.pending_phone_number,
     }
 
@@ -360,7 +360,7 @@ async def complete_phone_verification(
     ).scalars().all()
     now = _utc_now_naive()
     for organization in organizations:
-        if organization.subscription_status == "pending_verification" and organization.trial_ends_at is None:
+        if organization.subscription_status in {"pending_verification", "trialing"} and organization.trial_ends_at is None:
             organization.subscription_status = "trialing"
             organization.trial_ends_at = now + timedelta(days=TRIAL_DAYS)
 

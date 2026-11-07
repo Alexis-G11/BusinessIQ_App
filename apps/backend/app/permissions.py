@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from fastapi import Depends, Header, HTTPException
 from sqlalchemy import select
@@ -7,8 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
 from app.database import get_db
+from app.models.organization import Organization
 from app.models.role import Permission, RolePermission, UserRole
 from app.models.user import OrganizationUser, User
+from app.subscriptions import has_feature_access
 
 
 @dataclass(frozen=True)
@@ -18,6 +21,9 @@ class OrgContext:
     organization_id: uuid.UUID
     is_owner: bool
     permissions: frozenset[str]
+    phone_verified: bool
+    subscription_status: str
+    trial_ends_at: datetime | None
 
     def can(self, code: str) -> bool:
         # Owners can do everything in their own business.
@@ -64,12 +70,18 @@ async def get_org_context(
         )
     )
     codes = frozenset(result.scalars().all())
+    organization = await db.get(Organization, membership.organization_id)
+    if organization is None:
+        raise HTTPException(status_code=404, detail="Business not found")
 
     return OrgContext(
         user=user,
         organization_id=membership.organization_id,
         is_owner=membership.is_owner,
         permissions=codes,
+        phone_verified=user.phone_verified,
+        subscription_status=organization.subscription_status,
+        trial_ends_at=organization.trial_ends_at,
     )
 
 
@@ -79,6 +91,16 @@ def require_permission(code: str):
     async def checker(
         ctx: OrgContext = Depends(get_org_context),
     ) -> OrgContext:
+        if not has_feature_access(
+            phone_verified=ctx.phone_verified,
+            subscription_status=ctx.subscription_status,
+            trial_ends_at=ctx.trial_ends_at,
+            now=datetime.now(timezone.utc),
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="Verify your phone and start or renew a subscription to use business features",
+            )
         if not ctx.can(code):
             raise HTTPException(status_code=403, detail="You do not have permission to do this")
         return ctx

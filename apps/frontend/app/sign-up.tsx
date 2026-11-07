@@ -100,8 +100,8 @@ export default function SignUpScreen() {
             <Text style={styles.title}>{signupComplete ? 'Account created' : 'Create your account'}</Text>
             <Text style={styles.subtitle}>
               {signupComplete
-                ? 'Your account is ready. Sign in to open your workspace.'
-                : 'Create a free testing account. No email or phone verification and no payment are required.'}
+                ? 'Your account is created. Sign in and verify your phone to start your 7-day trial.'
+                : 'Create your account. Verify your phone after sign-in to start your 7-day trial.'}
             </Text>
 
             {error && <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
@@ -138,7 +138,7 @@ export default function SignUpScreen() {
               onChangeText={setPhone}
               placeholder="+1 555 000 1234"
               keyboardType="phone-pad"
-              hint="Use international format. This is saved as account contact information; SMS verification is disabled during testing."
+              hint="Use international format. We will send a verification code after you sign in."
             />
             <Input
               label="Password"
