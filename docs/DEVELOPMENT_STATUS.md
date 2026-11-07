@@ -2,6 +2,13 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: journal-backed income statement
+
+- Added a permission-protected, organization-scoped income statement endpoint for required start/end dates. It reads only posted journal entries, uses account classes and Decimal arithmetic, and includes net revenue (including contra-revenue), COGS, gross profit, operating expenses/income, other income/expense, and net income.
+- Expo Reports now requests the statement and identifies period, currency, accrual basis, and source. The old revenue-minus-expenses “profit” and “cash flow” approximations were removed from this page; cash flow is explicitly shown as unavailable pending classification and reconciliation support.
+- Pure income-statement calculations have tests for COGS, contra-revenue, other income/expense, and empty periods. API/database integration evidence and the balance sheet/cash-flow statement are still required.
+- Verification: 11 pure backend money/report tests pass; the Expo TypeScript check has zero diagnostics; Python AST parsing passes. This host has no installed FastAPI/SQLAlchemy backend runtime, so router import and PostgreSQL query execution were unavailable. CI has the test dependencies, but no database-backed report test exists yet.
+
 ## Latest increment: currency precision enforcement bridge
 
 - Added `organizations.currency_exponent` in additive migration `5ec2a4b9d710`; existing organizations receive exponent 2 to preserve historical amount interpretation.

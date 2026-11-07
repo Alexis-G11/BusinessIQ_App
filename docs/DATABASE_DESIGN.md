@@ -4,11 +4,13 @@
 
 PostgreSQL is the target single source of truth for business and financial data. Existing SQLAlchemy models center on `organizations`; membership/role tables associate users to organizations; operational entities include products, inventory transactions, sales, purchases, expenses, customers, suppliers, payments, and payment allocations; accounting entities include accounts, journal entries, and journal lines.
 
-Alembic contains 16 source revisions with source head `a84d6c21f903`. The current database revision, extensions, indexes, grants, RLS state, and data quality are unknown because no database inspection was performed. Preserve every existing migration; use additive, reviewed migrations for changes.
+Alembic contains 17 source revisions with source head `5ec2a4b9d710`. The current database revision, extensions, indexes, grants, RLS state, and data quality are unknown because no database inspection was performed. Preserve every existing migration; use additive, reviewed migrations for changes.
 
 The current development increment adds `organizations.trial_started_at` and an `organization_trial_decisions` row per business. The decision stores its actor, decision/reason, start/expiry times, and observed abuse-signal list. RLS is enabled with no authenticated-user policy; the API service role is the only application writer. Migration `c92fa24d7e10` backfills start time as seven days before the recorded end for existing trialing organizations. It is authored but not applied or tested against PostgreSQL in this workspace.
 
 Migration `a84d6c21f903` adds nullable notes to backend expenses so the Expo expense form can preserve notes through the tenant-scoped API. This additive migration is source-reviewed only; it has not been applied or exercised against an isolated database.
+
+Migration `5ec2a4b9d710` adds `organizations.currency_exponent`, backfilled to 2 to preserve every existing organization's historical integer amount meaning. New organizations derive an exponent from the supported currency list. The income-statement API aggregates posted journal lines by account class; report execution against PostgreSQL remains unverified.
 
 ## Existing integrity mechanisms
 
@@ -20,7 +22,7 @@ Identity and security; businesses and memberships; plans/subscriptions/entitleme
 
 ## Money, currency, and time
 
-Current operational tables store integer values described as cents, and conversion logic assumes two decimal places. The owner requires Rwanda/RWF launch plus multi-currency expansion. Before altering money fields, define a currency registry with minor-unit precision and rounding, transaction/base/reporting currencies, and an explicit migration that interprets existing values without changing posted history. Store exchange-rate snapshots and provenance on posted foreign-currency records. Timestamps should be stored in UTC and rendered in the configured business timezone.
+Current operational tables still store integers at a legacy scale of one hundred per major unit. New writes enforce the organization's currency exponent against that scale, and tax rounds using the exponent. Existing organizations keep exponent 2, so historical data is not reinterpreted. This bridge does not satisfy the full SRS currency model: transaction currency, base/reporting currency conversions, foreign-currency allocations, and exchange-rate snapshots/provenance remain unimplemented. Timestamps should be stored in UTC and rendered in the configured business timezone.
 
 ## Integrity direction
 

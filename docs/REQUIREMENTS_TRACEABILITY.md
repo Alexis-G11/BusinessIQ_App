@@ -30,12 +30,12 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-FIN-007 | Customer/supplier APIs exist | PARTIAL | Transaction history/search parity and tests |
 | FR-ACC-001 | Default chart seeded per signup | PARTIAL | Configurable chart and account management |
 | FR-ACC-002–003 | Journal service validates balancing in application code | PARTIAL | Journal APIs and database-level/concurrency evidence |
-| FR-ACC-004 | Ledger and trial balance services exist | PARTIAL | General-ledger and financial statement APIs |
+| FR-ACC-004 | Ledger and trial-balance services exist; `GET /api/v1/reports/income-statement` now builds net revenue, COGS, gross profit, expenses, other income/expense, and net income from posted journal lines for an explicit period | PARTIAL | Balance sheet, cash-flow statement, report contract/integration tests, export and reproducibility tests |
 | FR-ACC-005–006 | Some source services post journals transactionally | PARTIAL | Deterministic posting coverage for every source operation |
 | FR-ACC-007–008 | No fiscal period or opening-balance workflow found | NOT IMPLEMENTED | Period lifecycle and migration evidence |
 | FR-ACC-009 | `posted_by` exists; general append-only audit/reversal workflow absent | PARTIAL | Full actor/action audit and reversal tests |
-| FR-ACC-010–012 | No reproducible report basis or reconciliation implementation found | NOT IMPLEMENTED | Basis, currency, cash/accrual, and reconciliation tests |
-| FR-REP-001–006 | Client dashboard/report calculations exist; no report API/export | PARTIAL | Authoritative scoped report service and provenance/empty/stale tests |
+| FR-ACC-010–012 | Income statement response states period, organization currency, accrual basis, and posted-journal source; cash-flow classification and reconciliation are absent | PARTIAL | Report API/database integration tests, balance sheet, cash-flow method, bank reconciliation and reproducibility tests |
+| FR-REP-001–006 | Tenant-scoped income-statement API filters posted journals by required dates; Expo Reports now consumes it and marks its source/basis. Cash-flow statement is explicitly unavailable until classifications exist. Sales/expense detail lists remain operational summaries. | PARTIAL | Add date/dimension filters, export/audit, stale/incomplete-data indicators, report API tests and all other required report families |
 | FR-DS-001–002 | Client-side summary calculations; no backend analytics service | PARTIAL | Validated tenant-scoped metrics and diagnostic tests |
 | FR-DS-003–010 | ML libraries listed, no forecast/anomaly pipeline found | NOT IMPLEMENTED | Backtests, uncertainty, model cards, drift and evidence |
 | FR-DS-011–012 | No cross-tenant training/labeling governance implementation found | NOT IMPLEMENTED | Consent/governance and explicit output labels |

@@ -15,9 +15,9 @@ This document records the approved project direction and the implementation base
 
 ## Current repository shape
 
-The backend contains models and APIs for organizations, products, inventory, customers, suppliers, sales, purchases, expenses, and payments. Accounting services exist, but report and accounting-management APIs are incomplete. Expo expenses, sales, purchases, products, and organization context have source-level FastAPI integrations. Invoices, payments, membership management, and some generic table access still reference a separate Supabase `business_id` schema; that separate schema must not become a second business-data source.
+The backend contains models and APIs for organizations, products, inventory, customers, suppliers, sales, purchases, expenses, and payments. Accounting services and a first journal-backed accrual income-statement API exist; balance sheet, cash flow and accounting-management APIs remain incomplete. Expo expenses, sales, purchases, products, organization context, and the income statement have source-level FastAPI integrations. Invoices, some payment reads, membership management, and generic table access still reference a separate Supabase `business_id` schema; that separate schema must not become a second business-data source.
 
-The backend migration graph has one source head, `a84d6c21f903`, across 16 source revisions. The live database revision and applied schema are unknown; no database was queried for this baseline. The latest additive revision adds nullable expense notes; neither it nor earlier unapplied revisions have been tested against PostgreSQL in this workspace.
+The backend migration graph has one source head, `5ec2a4b9d710`, across 17 source revisions. The live database revision and applied schema are unknown; no database was queried for this baseline. The latest additive revision preserves historical amount interpretation while storing new-business currency precision; it has not been applied or tested against PostgreSQL in this workspace.
 
 ## Target request flow
 

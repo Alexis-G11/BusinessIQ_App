@@ -123,6 +123,7 @@ export interface Sale {
   tax?: number;
   total: number;
   paid_amount: number;
+  sale_date?: string;
   status: SaleStatus;
   payment_method: PaymentMethod | null;
   notes: string | null;

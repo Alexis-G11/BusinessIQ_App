@@ -24,6 +24,7 @@ class OrgContext:
     phone_verified: bool
     subscription_status: str
     trial_ends_at: datetime | None
+    currency: str
     currency_exponent: int
 
     def can(self, code: str) -> bool:
@@ -83,6 +84,7 @@ async def get_org_context(
         phone_verified=user.phone_verified,
         subscription_status=organization.subscription_status,
         trial_ends_at=organization.trial_ends_at,
+        currency=organization.currency,
         currency_exponent=organization.currency_exponent,
     )
 

@@ -164,3 +164,29 @@ export const backendOrganizationApi = {
     return backendRequest('/organizations', { method: 'POST', body: payload });
   },
 };
+
+export interface BackendIncomeStatement {
+  organization_id: string;
+  period_start: string;
+  period_end: string;
+  currency: string;
+  currency_basis: 'business_currency';
+  accounting_basis: 'accrual';
+  source: 'posted_journal_entries';
+  lines: { account_code: string; account_name: string; account_type: string; amount: string }[];
+  revenue: string;
+  cost_of_goods_sold: string;
+  gross_profit: string;
+  operating_expenses: string;
+  operating_income: string;
+  other_income: string;
+  other_expenses: string;
+  net_income: string;
+}
+
+export const backendReportsApi = {
+  incomeStatement(organizationId: string, fromDate: string, toDate: string): Promise<BackendIncomeStatement> {
+    const query = new URLSearchParams({ from: fromDate, to: toDate });
+    return backendRequest(`/reports/income-statement?${query.toString()}`, { organizationId });
+  },
+};

@@ -754,6 +754,7 @@ export const saleApi = {
       contact_name: row.customer_name,
       total: row.total_cents / 100,
       paid_amount: row.amount_paid_cents / 100,
+      sale_date: row.sale_date,
       status: row.status as SaleStatus,
       payment_method: null,
       notes: null,

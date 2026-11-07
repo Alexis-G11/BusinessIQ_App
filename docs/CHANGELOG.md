@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Journal-backed income statement
+
+- Added `GET /api/v1/reports/income-statement`, requiring the existing `reports.view` permission and an authorized organization context. It aggregates posted journal lines in a required date range and reports net revenue, COGS, gross profit, expenses, other income/expense, and net income using Decimal arithmetic.
+- The Expo Reports screen now uses the backend statement, states its period/currency/accrual basis/source, and no longer presents revenue minus expenses as net profit or as cash flow.
+- Balance sheet, classified cash flow, reconciliation, report export, and report integration tests remain outstanding.
+
 ## 2026-11-07 — Currency precision enforcement bridge
 
 - Added organization currency precision and an additive migration that preserves existing organizations at their historical two-decimal interpretation.

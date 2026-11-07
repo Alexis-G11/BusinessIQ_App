@@ -2,7 +2,7 @@
 
 ## Current API
 
-FastAPI routes are versioned under `/api/v1` for auth, organizations, products, categories, customers, suppliers, inventory, sales, payments, purchases, and expenses. OpenAPI/docs are enabled outside production and disabled in production by current app configuration. Route presence does not establish working integration or stable contracts.
+FastAPI routes are versioned under `/api/v1` for auth, organizations, products, categories, customers, suppliers, inventory, sales, payments, purchases, expenses, and reports. The income-statement route reads posted journal activity for an explicit date range and returns its currency, accrual basis, and source. OpenAPI/docs are enabled outside production and disabled in production by current app configuration. Route presence does not establish working integration or stable contracts.
 
 ## Contract rules
 
@@ -15,6 +15,8 @@ FastAPI routes are versioned under `/api/v1` for auth, organizations, products, 
 - Record correlation IDs and material audit events without sensitive payloads.
 
 `GET /api/v1/auth/profile` and `PATCH /api/v1/auth/profile` operate on the authenticated identity without selecting a business. `GET /api/v1/organizations` lists only the current user's memberships. `POST /api/v1/organizations` creates a workspace for a phone-verified user, seeds its owner access and default chart, and starts a server-timed seven-day trial. Expo selection is local UI state; every business API request still sends `X-Organization-Id`, which the backend validates against membership.
+
+`GET /api/v1/reports/income-statement?from=YYYY-MM-DD&to=YYYY-MM-DD` requires `reports.view`, resolves the selected organization through membership, and returns totals aggregated from posted journal lines only. The response states the date range, organization currency, accrual basis, and `posted_journal_entries` provenance. It does not yet provide cash-flow or balance-sheet reports.
 
 ## Target domains
 
