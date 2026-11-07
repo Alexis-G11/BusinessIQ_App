@@ -2,6 +2,12 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: journal-backed balance sheet
+
+- Added an organization-scoped `reports.view` API for balance-sheet balances through an as-of date. Current earnings through that date are included in equity until fiscal period closing is implemented. The response identifies currency, accrual basis, source, and whether assets equal liabilities plus equity; it returns the difference without forcing a correction.
+- Expo Reports now displays asset, liability, equity, current-earnings and equation totals. Cash-flow reporting remains explicitly unavailable because the accounts do not yet classify operating/investing/financing cash movements.
+- Added pure tests for the balance equation, drawings, and imbalance detection; fake-session API tests cover tenant/date/status filters for both report endpoints. API route tests remain unrun locally because FastAPI/SQLAlchemy are absent; no PostgreSQL instance was contacted. See ADR-0003 for the accounting rationale and reporting limitations.
+
 ## Latest increment: journal-backed income statement
 
 - Added a permission-protected, organization-scoped income statement endpoint for required start/end dates. It reads only posted journal entries, uses account classes and Decimal arithmetic, and includes net revenue (including contra-revenue), COGS, gross profit, operating expenses/income, other income/expense, and net income.

@@ -19,6 +19,8 @@ The backend contains models and APIs for organizations, products, inventory, cus
 
 The backend migration graph has one source head, `5ec2a4b9d710`, across 17 source revisions. The live database revision and applied schema are unknown; no database was queried for this baseline. The latest additive revision preserves historical amount interpretation while storing new-business currency precision; it has not been applied or tested against PostgreSQL in this workspace.
 
+The Reports API now derives income-statement and balance-sheet figures from posted journal entries. Current earnings appear as a separate equity component until fiscal-period closing exists. Cash-flow reporting remains unavailable pending classifications and reconciliation; see ADR-0003 for the accounting boundary and tests.
+
 ## Target request flow
 
 1. Client authenticates with the identity provider and obtains a short-lived access token.

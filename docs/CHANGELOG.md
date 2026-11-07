@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Journal-backed balance sheet
+
+- Added `GET /api/v1/reports/balance-sheet?as_of=...`, protected by `reports.view` and organization membership. It derives balances from posted journals, includes current earnings in equity, and returns the accounting-equation difference and balance flag.
+- Added balance-sheet rendering to Expo Reports. A non-zero difference is surfaced for investigation rather than hidden.
+- Added arithmetic tests and fake-session API contract coverage. Cash-flow statements, database-backed tests, current/non-current presentation, and jurisdiction-specific accounting review remain outstanding.
+
 ## 2026-11-07 — Journal-backed income statement
 
 - Added `GET /api/v1/reports/income-statement`, requiring the existing `reports.view` permission and an authorized organization context. It aggregates posted journal lines in a required date range and reports net revenue, COGS, gross profit, expenses, other income/expense, and net income using Decimal arithmetic.

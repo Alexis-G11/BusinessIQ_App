@@ -4,6 +4,7 @@ import os
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
+from unittest.mock import patch
 
 # Importing the app configuration constructs an engine but must not require real
 # project credentials or make a connection in this test process.
@@ -15,12 +16,11 @@ _TEST_SETTINGS = {
     "SUPABASE_SERVICE_ROLE_KEY": "test-service-role-key",
     "STRIPE_SECRET_KEY": "test-stripe-key",
 }
-os.environ.update(_TEST_SETTINGS)
+with patch.dict(os.environ, _TEST_SETTINGS):
+    from fastapi import HTTPException
 
-from fastapi import HTTPException
-
-from app.permissions import OrgContext, require_permission
-from app.routers.reports import income_statement
+    from app.permissions import OrgContext, require_permission
+    from app.routers.reports import balance_sheet, income_statement
 
 
 class _FakeResult:
@@ -33,12 +33,16 @@ class _FakeResult:
 
 
 class _FakeDatabase:
-    def __init__(self):
+    def __init__(self, rows=None):
         self.statement = None
+        self.rows = rows
 
     async def execute(self, statement):
         self.statement = statement
-        return _FakeResult()
+        result = _FakeResult()
+        if self.rows is not None:
+            result.all = lambda: self.rows
+        return result
 
 
 def _context(organization_id: uuid.UUID, permissions: frozenset[str] = frozenset({"reports.view"})):
@@ -97,6 +101,31 @@ def test_income_statement_api_rejects_reversed_period_before_querying():
     except HTTPException as exc:
         assert exc.status_code == 422
     assert db.statement is None
+
+
+def test_balance_sheet_api_adds_current_earnings_and_scopes_as_of_query():
+    organization_id = uuid.uuid4()
+    db = _FakeDatabase([
+        ("1000", "Cash", "asset", Decimal("700"), Decimal("0")),
+        ("2000", "Payables", "liability", Decimal("0"), Decimal("200")),
+        ("3000", "Capital", "equity", Decimal("0"), Decimal("200")),
+        ("4000", "Revenue", "revenue", Decimal("0"), Decimal("400")),
+        ("6000", "Expense", "expense", Decimal("100"), Decimal("0")),
+    ])
+    result = asyncio.run(balance_sheet(date(2026, 11, 30), _context(organization_id), db))
+
+    assert result.organization_id == organization_id
+    assert result.as_of == date(2026, 11, 30)
+    assert result.has_activity
+    assert result.current_earnings == Decimal("300")
+    assert result.total_assets == Decimal("700")
+    assert result.liabilities_and_equity == Decimal("700")
+    assert result.is_balanced
+
+    parameters = list(db.statement.compile().params.values())
+    assert parameters.count(organization_id) == 2
+    assert "posted" in parameters
+    assert date(2026, 11, 30) in parameters
 
 
 def test_report_permission_denies_member_without_reports_access():

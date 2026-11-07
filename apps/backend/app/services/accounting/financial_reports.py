@@ -37,6 +37,28 @@ class IncomeStatement:
     net_income: Decimal
 
 
+@dataclass(frozen=True)
+class BalanceSheetLine:
+    account_code: str
+    account_name: str
+    account_type: str
+    amount: Decimal
+
+
+@dataclass(frozen=True)
+class BalanceSheet:
+    assets: tuple[BalanceSheetLine, ...]
+    liabilities: tuple[BalanceSheetLine, ...]
+    equity_accounts: tuple[BalanceSheetLine, ...]
+    current_earnings: Decimal
+    total_assets: Decimal
+    total_liabilities: Decimal
+    total_equity: Decimal
+    liabilities_and_equity: Decimal
+    difference: Decimal
+    is_balanced: bool
+
+
 def build_income_statement(accounts: Iterable[IncomeStatementAccount]) -> IncomeStatement:
     """Build totals using account classes and posted debit/credit movements.
 
@@ -80,4 +102,53 @@ def build_income_statement(accounts: Iterable[IncomeStatementAccount]) -> Income
         other_income=totals["other_income"],
         other_expenses=totals["other_expense"],
         net_income=net_income,
+    )
+
+
+def build_balance_sheet(
+    accounts: Iterable[IncomeStatementAccount],
+    current_earnings: Decimal,
+) -> BalanceSheet:
+    """Build an as-of balance sheet; current earnings flow into equity.
+
+    Amounts use the account-class presentation side: assets are debit-positive,
+    while liabilities and equity are credit-positive. A debit in an equity
+    contra-account such as drawings therefore reduces reported equity.
+    """
+    groups: dict[str, list[BalanceSheetLine]] = {
+        "asset": [],
+        "liability": [],
+        "equity": [],
+    }
+    totals = {key: ZERO for key in groups}
+    for account in accounts:
+        if account.account_type not in groups:
+            continue
+        amount = (
+            account.debit - account.credit
+            if account.account_type == "asset"
+            else account.credit - account.debit
+        )
+        groups[account.account_type].append(BalanceSheetLine(
+            account_code=account.account_code,
+            account_name=account.account_name,
+            account_type=account.account_type,
+            amount=amount,
+        ))
+        totals[account.account_type] += amount
+
+    total_equity = totals["equity"] + current_earnings
+    liabilities_and_equity = totals["liability"] + total_equity
+    difference = totals["asset"] - liabilities_and_equity
+    return BalanceSheet(
+        assets=tuple(groups["asset"]),
+        liabilities=tuple(groups["liability"]),
+        equity_accounts=tuple(groups["equity"]),
+        current_earnings=current_earnings,
+        total_assets=totals["asset"],
+        total_liabilities=totals["liability"],
+        total_equity=total_equity,
+        liabilities_and_equity=liabilities_and_equity,
+        difference=difference,
+        is_balanced=difference == ZERO,
     )

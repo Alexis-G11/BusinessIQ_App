@@ -5,11 +5,11 @@ import { useSales, useExpenses } from '@/hooks/useBusinessData';
 import { Card } from '@/components/ui/Card';
 import { LoadingState, EmptyState } from '@/components/ui/States';
 import { formatCurrency, formatDate } from '@/lib/format';
-import { backendReportsApi, type BackendIncomeStatement } from '@/lib/backend';
+import { backendReportsApi, type BackendBalanceSheet, type BackendIncomeStatement } from '@/lib/backend';
 import { colors, spacing, fontSizes, fontWeights } from '@/theme';
 import { TrendingUp, TrendingDown, DollarSign, Wallet, ChevronDown, ChevronUp } from 'lucide-react-native';
 
-type ReportType = 'income-statement' | 'cash-flow' | 'sales-summary' | 'expense-summary';
+type ReportType = 'income-statement' | 'balance-sheet' | 'cash-flow' | 'sales-summary' | 'expense-summary';
 
 function currentMonthInTimezone(timezone: string, now: Date): { start: string; end: string } {
   let parts: Record<string, string>;
@@ -39,6 +39,7 @@ export default function ReportsScreen() {
   const { data: sales, loading: salesLoading } = useSales();
   const { data: expenses, loading: expensesLoading } = useExpenses();
   const [statement, setStatement] = useState<BackendIncomeStatement | null>(null);
+  const [balanceSheet, setBalanceSheet] = useState<BackendBalanceSheet | null>(null);
   const [statementLoading, setStatementLoading] = useState(true);
   const [statementError, setStatementError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,15 +52,22 @@ export default function ReportsScreen() {
   const loadStatement = useCallback(async () => {
     if (!currentBusiness) {
       setStatement(null);
+      setBalanceSheet(null);
       setStatementLoading(false);
       return;
     }
     setStatementLoading(true);
     setStatementError(null);
     try {
-      setStatement(await backendReportsApi.incomeStatement(currentBusiness.id, periodStart, periodEnd));
+      const [income, balance] = await Promise.all([
+        backendReportsApi.incomeStatement(currentBusiness.id, periodStart, periodEnd),
+        backendReportsApi.balanceSheet(currentBusiness.id, periodEnd),
+      ]);
+      setStatement(income);
+      setBalanceSheet(balance);
     } catch (error) {
       setStatement(null);
+      setBalanceSheet(null);
       setStatementError(error instanceof Error ? error.message : 'Could not load the income statement.');
     } finally {
       setStatementLoading(false);
@@ -96,6 +104,7 @@ export default function ReportsScreen() {
 
   const reports: { id: ReportType; label: string; desc: string; icon: React.ReactNode }[] = [
     { id: 'income-statement', label: 'Income Statement', desc: 'Accrual basis · posted journal entries', icon: <TrendingUp size={20} color={colors.blue} /> },
+    { id: 'balance-sheet', label: 'Balance Sheet', desc: `As of ${periodEnd} · current earnings included in equity`, icon: <DollarSign size={20} color={colors.info} /> },
     { id: 'cash-flow', label: 'Cash Flow Statement', desc: 'Not available until cash-flow classifications are implemented', icon: <Wallet size={20} color={colors.success} /> },
     { id: 'sales-summary', label: 'Sales Summary', desc: 'Completed sales in this period', icon: <DollarSign size={20} color={colors.info} /> },
     { id: 'expense-summary', label: 'Expense Summary', desc: 'Expenses by category', icon: <TrendingDown size={20} color={colors.danger} /> },
@@ -160,6 +169,29 @@ export default function ReportsScreen() {
             {isOpen && report.id === 'cash-flow' && (
               <View style={styles.reportBody}>
                 <Text style={styles.emptyText}>A cash-flow statement is not available yet. BusinessIQ needs cash-flow classifications and a reconciled report method before it can present this figure.</Text>
+              </View>
+            )}
+
+            {isOpen && report.id === 'balance-sheet' && (
+              <View style={styles.reportBody}>
+                {!balanceSheet?.has_activity ? <Text style={styles.emptyText}>No posted balance-sheet activity exists as of this date.</Text> : <>
+                  <Text style={styles.cfSection}>Assets</Text>
+                  {balanceSheet.assets.map((line) => <FinancialLine key={line.account_code} label={`${line.account_code} ${line.account_name}`} value={Number(line.amount)} currency={currency} exponent={currencyExponent} />)}
+                  <StatementRow label="Total assets" value={Number(balanceSheet.total_assets)} currency={currency} exponent={currencyExponent} bold />
+                  <View style={styles.statementDivider} />
+                  <Text style={styles.cfSection}>Liabilities</Text>
+                  {balanceSheet.liabilities.map((line) => <FinancialLine key={line.account_code} label={`${line.account_code} ${line.account_name}`} value={Number(line.amount)} currency={currency} exponent={currencyExponent} />)}
+                  <StatementRow label="Total liabilities" value={Number(balanceSheet.total_liabilities)} currency={currency} exponent={currencyExponent} bold />
+                  <View style={styles.statementDivider} />
+                  <Text style={styles.cfSection}>Equity</Text>
+                  {balanceSheet.equity_accounts.map((line) => <FinancialLine key={line.account_code} label={`${line.account_code} ${line.account_name}`} value={Number(line.amount)} currency={currency} exponent={currencyExponent} />)}
+                  <StatementRow label="Current earnings" value={Number(balanceSheet.current_earnings)} currency={currency} exponent={currencyExponent} />
+                  <StatementRow label="Total equity" value={Number(balanceSheet.total_equity)} currency={currency} exponent={currencyExponent} bold />
+                  <View style={styles.statementDivider} />
+                  <StatementRow label="Liabilities and equity" value={Number(balanceSheet.liabilities_and_equity)} currency={currency} exponent={currencyExponent} bold />
+                  <StatementRow label="Balance difference" value={Number(balanceSheet.difference)} currency={currency} exponent={currencyExponent} bold />
+                  {!balanceSheet.is_balanced && <Text accessibilityRole="alert" style={styles.errorText}>This statement does not balance. Review posted journals and account setup.</Text>}
+                </>}
               </View>
             )}
 
@@ -245,4 +277,8 @@ function StatementRow({ label, value, currency, exponent, bold = false }: { labe
       <Text style={[style, value < 0 ? { color: colors.danger } : null]}>{value < 0 ? `(${formatCurrency(-value, currency, exponent)})` : formatCurrency(value, currency, exponent)}</Text>
     </View>
   );
+}
+
+function FinancialLine({ label, value, currency, exponent }: { label: string; value: number; currency: string; exponent: number }) {
+  return <StatementRow label={label} value={value} currency={currency} exponent={exponent} />;
 }

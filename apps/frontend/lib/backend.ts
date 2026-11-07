@@ -184,9 +184,33 @@ export interface BackendIncomeStatement {
   net_income: string;
 }
 
+export interface BackendBalanceSheet {
+  organization_id: string;
+  as_of: string;
+  currency: string;
+  currency_basis: 'business_currency';
+  accounting_basis: 'accrual';
+  source: 'posted_journal_entries';
+  has_activity: boolean;
+  assets: BackendIncomeStatement['lines'];
+  liabilities: BackendIncomeStatement['lines'];
+  equity_accounts: BackendIncomeStatement['lines'];
+  current_earnings: string;
+  total_assets: string;
+  total_liabilities: string;
+  total_equity: string;
+  liabilities_and_equity: string;
+  difference: string;
+  is_balanced: boolean;
+}
+
 export const backendReportsApi = {
   incomeStatement(organizationId: string, fromDate: string, toDate: string): Promise<BackendIncomeStatement> {
     const query = new URLSearchParams({ from: fromDate, to: toDate });
     return backendRequest(`/reports/income-statement?${query.toString()}`, { organizationId });
+  },
+  balanceSheet(organizationId: string, asOf: string): Promise<BackendBalanceSheet> {
+    const query = new URLSearchParams({ as_of: asOf });
+    return backendRequest(`/reports/balance-sheet?${query.toString()}`, { organizationId });
   },
 };
