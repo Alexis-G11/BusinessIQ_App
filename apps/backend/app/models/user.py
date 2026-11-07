@@ -41,6 +41,11 @@ class PhoneTrialClaim(Base):
 class OrganizationUser(Base):
     __tablename__ = "organization_users"
     __table_args__ = (
+        CheckConstraint(
+            "(revoked_at IS NULL AND revoked_by_user_id IS NULL) OR "
+            "(revoked_at IS NOT NULL AND revoked_by_user_id IS NOT NULL)",
+            name="ck_organization_users_revocation_actor",
+        ),
         UniqueConstraint(
             "organization_id",
             "user_id",
@@ -53,8 +58,33 @@ class OrganizationUser(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     is_owner: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    revoked_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"), nullable=True
+    )
 
     organization: Mapped["Organization"] = relationship(back_populates="organization_users")
+
+
+class OrganizationMembershipEvent(Base):
+    """Append-only membership history, retained when a member is removed or reinstated."""
+    __tablename__ = "organization_membership_events"
+    __table_args__ = (
+        CheckConstraint(
+            "event_type IN ('created', 'reinstated', 'role_changed', 'revoked')",
+            name="ck_organization_membership_events_event_type",
+        ),
+        Index("ix_organization_membership_events_tenant_time", "organization_id", "occurred_at"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
+    organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="RESTRICT"))
+    membership_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organization_users.id", ondelete="RESTRICT"))
+    actor_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    event_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    previous_role_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("roles.id"), nullable=True)
+    new_role_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("roles.id"), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 class OrganizationInvitation(Base):

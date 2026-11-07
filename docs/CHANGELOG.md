@@ -1,5 +1,12 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Managed membership lifecycle
+
+- Added soft-revocation fields to business membership and a tenant-scoped event table for created, role-changed, revoked, and reinstated events. A database trigger makes event rows immutable. Existing memberships remain active by default; no rows are deleted or rewritten by the migration.
+- Added authorized active-member listing, non-privileged role changes, and removal. Business owners and an acting administrator cannot be removed through this flow. Removed users are excluded from business selection and API organization context.
+- Invitation acceptance now reactivates a previously removed membership and updates its role while preserving the membership identifier and lifecycle events.
+- Added six database-free membership route contract tests. They require the CI backend runtime; migration and database behavior remain unverified locally.
+
 ## 2026-11-07 — Business member invitations
 
 - Added an additive invitation table and tenant-scoped create/list/revoke/accept endpoints. Invitation tokens are high entropy, expire after seven days, are bound to the invited email, and are stored only as SHA-256 digests. Acceptance requires a phone-verified authenticated account.

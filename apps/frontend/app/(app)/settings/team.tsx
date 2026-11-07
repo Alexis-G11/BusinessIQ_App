@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useBusiness } from '@/context/BusinessContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
-import { backendMembershipApi, type AssignableBusinessRole, type BackendInvitation } from '@/lib/backend';
+import { backendMembershipApi, type AssignableBusinessRole, type BackendInvitation, type BackendMember } from '@/lib/backend';
 import { colors, fontSizes, fontWeights, spacing } from '@/theme';
 
 const ROLES: AssignableBusinessRole[] = ['manager', 'accountant', 'employee', 'inventory_staff', 'analyst'];
@@ -17,6 +17,7 @@ export default function TeamSettingsScreen() {
   const [token, setToken] = useState('');
   const [invitation, setInvitation] = useState<{ email: string; role: string; token: string; expires_at: string } | null>(null);
   const [invitations, setInvitations] = useState<BackendInvitation[]>([]);
+  const [members, setMembers] = useState<BackendMember[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,12 +26,18 @@ export default function TeamSettingsScreen() {
   const loadInvitations = useCallback(async () => {
     if (!currentBusiness || !canManage) {
       setInvitations([]);
+      setMembers([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     try {
-      setInvitations(await backendMembershipApi.listInvitations(currentBusiness.id));
+      const [nextInvitations, nextMembers] = await Promise.all([
+        backendMembershipApi.listInvitations(currentBusiness.id),
+        backendMembershipApi.listMembers(currentBusiness.id),
+      ]);
+      setInvitations(nextInvitations);
+      setMembers(nextMembers);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not load invitations.');
@@ -68,6 +75,34 @@ export default function TeamSettingsScreen() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not revoke the invitation.');
     }
+  };
+
+  const handleRoleChange = async (member: BackendMember, nextRole: AssignableBusinessRole) => {
+    if (!currentBusiness || member.role === nextRole) return;
+    setError(null);
+    try {
+      const updated = await backendMembershipApi.updateMemberRole(currentBusiness.id, member.id, nextRole);
+      setMembers((previous) => previous.map((item) => item.id === updated.id ? updated : item));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not update this member role.');
+    }
+  };
+
+  const handleRemove = (member: BackendMember) => {
+    if (!currentBusiness) return;
+    Alert.alert('Remove business access?', `${member.full_name} will lose access. Their membership history will be retained.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: () => {
+        void (async () => {
+          try {
+            await backendMembershipApi.removeMember(currentBusiness.id, member.id);
+            setMembers((previous) => previous.filter((item) => item.id !== member.id));
+          } catch (e) {
+            setError(e instanceof Error ? e.message : 'Could not remove this member.');
+          }
+        })();
+      } },
+    ]);
   };
 
   const handleAccept = async () => {
@@ -120,6 +155,29 @@ export default function TeamSettingsScreen() {
 
       {canManage && <Card>
         <View style={styles.cardHeader}>
+          <Text style={styles.cardTitle}>Business members</Text>
+          <TouchableOpacity onPress={() => void loadInvitations()}><Text style={styles.link}>Refresh</Text></TouchableOpacity>
+        </View>
+        {loading ? <Text style={styles.help}>Loading team…</Text> : members.length === 0 ? <Text style={styles.help}>There are no active members.</Text> : members.map((member) => (
+          <View key={member.id} style={styles.memberRow}>
+            <View style={styles.invitationInfo}>
+              <Text style={styles.rowTitle}>{member.full_name}{member.is_owner ? ' · Owner' : ''}</Text>
+              <Text style={styles.help}>{member.email}</Text>
+              {member.is_owner ? <Text style={styles.help}>Business owner role is protected.</Text> : <View style={styles.memberRoles}>
+                {ROLES.map((item) => (
+                  <TouchableOpacity key={item} accessibilityRole="button" accessibilityState={{ selected: member.role === item }} style={[styles.roleChip, member.role === item && styles.roleChipSelected]} onPress={() => void handleRoleChange(member, item)}>
+                    <Text style={[styles.roleText, member.role === item && styles.roleTextSelected]}>{item.replace('_', ' ')}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>}
+            </View>
+            {!member.is_owner && <TouchableOpacity onPress={() => handleRemove(member)}><Text style={styles.revoke}>Remove</Text></TouchableOpacity>}
+          </View>
+        ))}
+      </Card>}
+
+      {canManage && <Card>
+        <View style={styles.cardHeader}>
           <Text style={styles.cardTitle}>Pending invitations</Text>
           <TouchableOpacity onPress={() => void loadInvitations()}><Text style={styles.link}>Refresh</Text></TouchableOpacity>
         </View>
@@ -164,6 +222,8 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   link: { color: colors.blue, fontWeight: fontWeights.semibold },
   invitationRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+  memberRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+  memberRoles: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
   invitationInfo: { flex: 1 },
   rowTitle: { fontSize: fontSizes.md, fontWeight: fontWeights.medium, color: colors.text },
   revoke: { color: colors.danger, fontWeight: fontWeights.semibold },

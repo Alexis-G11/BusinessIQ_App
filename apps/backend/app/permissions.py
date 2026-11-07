@@ -40,7 +40,10 @@ async def get_org_context(
     """Dependency: work out which business this request is for and what the user may do in it."""
     # 1. Every business this user belongs to.
     result = await db.execute(
-        select(OrganizationUser).where(OrganizationUser.user_id == user.id)
+        select(OrganizationUser).where(
+            OrganizationUser.user_id == user.id,
+            OrganizationUser.revoked_at.is_(None),
+        )
     )
     memberships = result.scalars().all()
 

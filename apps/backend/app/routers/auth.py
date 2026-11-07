@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models.organization import Organization
 from app.models.role import Role, UserRole
 from app.models.trial_decision import OrganizationTrialDecision
-from app.models.user import OrganizationUser, PhoneTrialClaim, User
+from app.models.user import OrganizationMembershipEvent, OrganizationUser, PhoneTrialClaim, User
 from app.money import currency_exponent
 from app.permissions import OrgContext, get_org_context
 from app.subscriptions import trial_expiry
@@ -248,9 +248,17 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
         db.add_all([org, user])
         await db.flush()
 
-        db.add(OrganizationUser(organization_id=org.id, user_id=user.id, is_owner=True))
+        membership = OrganizationUser(organization_id=org.id, user_id=user.id, is_owner=True)
+        db.add(membership)
         db.add(UserRole(user_id=user.id, organization_id=org.id, role_id=owner_role.id))
         await db.flush()
+        db.add(OrganizationMembershipEvent(
+            organization_id=org.id,
+            membership_id=membership.id,
+            actor_user_id=user.id,
+            event_type="created",
+            new_role_id=owner_role.id,
+        ))
 
         # One transaction seeds the new tenant's chart along with its owner and trial.
         await seed_default_chart_of_accounts(db, org.id)
@@ -399,7 +407,7 @@ async def complete_phone_verification(
     member_organization_ids = (
         await db.execute(
             select(OrganizationUser.organization_id)
-            .where(OrganizationUser.user_id == user.id)
+            .where(OrganizationUser.user_id == user.id, OrganizationUser.revoked_at.is_(None))
             .order_by(OrganizationUser.organization_id)
         )
     ).scalars().all()
@@ -412,6 +420,7 @@ async def complete_phone_verification(
             .where(
                 OrganizationUser.user_id == user.id,
                 OrganizationUser.is_owner.is_(True),
+                OrganizationUser.revoked_at.is_(None),
             )
             .order_by(OrganizationUser.organization_id)
         )

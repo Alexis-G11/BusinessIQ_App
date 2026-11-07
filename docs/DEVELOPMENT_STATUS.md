@@ -2,12 +2,19 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: managed membership lifecycle
+
+- Added an additive migration for soft-revocable memberships and tenant/time-indexed membership events. A PostgreSQL trigger rejects event updates/deletes. Member access is revoked without deleting the membership or its historical financial attribution; the actor is recorded. Existing organization and authentication lookup paths now ignore revoked memberships. RLS entitlement guards now cover invitation and membership-event rows and the helper checks active membership.
+- Added owner/admin scoped active-member listing, assignment of the existing non-privileged role allowlist, and removal controls in Expo Settings. Owners and the acting administrator cannot be removed through this flow. Role changes, revocations, creation, and invitation-based reinstatements write membership events.
+- Invitation acceptance can reinstate an inactive membership row and replace its role assignment, preserving the same membership identifier. Historical lifecycle events before this migration are unavailable and are not backfilled.
+- Verification: 6 database-free route contract tests have been added but cannot run on this host because FastAPI/SQLAlchemy are absent. 17 pure invitation/money/report tests pass; Python AST parsing passes for 85 backend, migration, and test files; the migration graph has one head (`c6e72b9a314f`) and no missing parents; Expo TypeScript reports zero diagnostics across 70 files; `git diff --check` passes. Migration execution, PostgreSQL RLS/trigger/constraints/locking, API acceptance/rejoin, and end-to-end role controls are **NOT VERIFIED**.
+
 ## Latest increment: business member invitations
 
 - Added an additive `organization_invitations` model/migration and tenant-scoped endpoints to create, list, revoke, and accept seven-day invitations. Only an SHA-256 token digest is stored; the raw high-entropy token is returned once. Invitation acceptance requires the signed-in account email to match and the account phone to be verified. Owner/admin roles cannot be granted through this flow.
 - Added an Expo Team and invitations screen under Settings. Since no email provider is configured, an administrator must share the one-time token manually. No email is sent by the application.
 - Verification: 3 pure invitation service tests pass under host Python 3.9; Python AST parsing passes for 83 backend, migration, and test files; Expo TypeScript reports zero diagnostics across 70 files; `git diff --check` passes. FastAPI/schema/API tests, migration execution, PostgreSQL concurrency behavior, and end-to-end invitation acceptance are **NOT VERIFIED** because this environment has no backend runtime dependencies or database.
-- Remaining membership lifecycle work includes active member listing, role changes, removal with rejoin-safe audit history, ownership transfer policy, and automated delivery only after a mail provider is configured. See FR-BIZ-006/007 in the traceability matrix.
+- Remaining membership work includes database-backed verification, ownership transfer policy, historical event backfill policy, and automated delivery only after a mail provider is configured. See FR-BIZ-006/007 in the traceability matrix.
 
 ## Latest increment: Rwanda launch defaults
 
@@ -53,7 +60,7 @@ Last updated: 2026-11-07
 - Added six pure unit tests and CI workflow jobs for backend and both frontend apps.
 - Corrected new-account trial lifecycle: signup stays pending until phone verification, the seven-day clock starts after verification, and protected business routes now enforce phone and entitlement status. `/auth/me` remains available to complete the verification flow.
 - Wired multi-business listing, creation, and switching through the backend organization API and the existing Expo picker/onboarding UI. Added a user-profile endpoint independent of business selection and removed unverified phone-number mutation from profile updates.
-- Added the invitation lifecycle API and Expo manual-token workflow; database-backed authorization, tenant-isolation, expiry, replay and acceptance evidence remains outstanding.
+- Added the invitation and membership lifecycle APIs and Expo team workflow; database-backed authorization, tenant-isolation, expiry, replay and acceptance evidence remains outstanding.
 - Added an additive migration to persist trial start and per-business eligibility decisions. Existing migrations were not edited or applied.
 - Replaced administrative email auto-confirmation with Supabase public signup, the configured confirmation callback, generic confirmation resend, and a fail-closed check when signup returns an authenticated session. Updated the Expo signup flow and auth setup instructions.
 - Added an independent confirmed-email check to `/auth/complete-signup` before account linking/setup and corrected the missing `date` import referenced by `OrganizationOut.fiscal_year_start`.

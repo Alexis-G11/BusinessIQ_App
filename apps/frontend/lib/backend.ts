@@ -230,7 +230,30 @@ export interface BackendInvitation {
   created_at: string;
 }
 
+export interface BackendMember {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  is_owner: boolean;
+  role: string | null;
+  joined_at: string;
+}
+
 export const backendMembershipApi = {
+  listMembers(organizationId: string): Promise<BackendMember[]> {
+    return backendRequest('/memberships/members', { organizationId });
+  },
+  updateMemberRole(organizationId: string, membershipId: string, role: AssignableBusinessRole): Promise<BackendMember> {
+    return backendRequest(`/memberships/members/${encodeURIComponent(membershipId)}`, {
+      method: 'PATCH', organizationId, body: { role },
+    });
+  },
+  removeMember(organizationId: string, membershipId: string): Promise<void> {
+    return backendRequest(`/memberships/members/${encodeURIComponent(membershipId)}`, {
+      method: 'DELETE', organizationId,
+    });
+  },
   createInvitation(organizationId: string, email: string, role: AssignableBusinessRole): Promise<{
     id: string;
     email: string;

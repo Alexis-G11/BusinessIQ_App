@@ -48,3 +48,17 @@ class InvitationAccepted(BaseModel):
     organization_name: str
     membership_id: uuid.UUID
     role: AssignableRole
+
+
+class MembershipRoleUpdate(BaseModel):
+    role: AssignableRole
+
+
+class MembershipSummary(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    full_name: str
+    email: EmailStr
+    is_owner: bool
+    role: str | None
+    joined_at: datetime

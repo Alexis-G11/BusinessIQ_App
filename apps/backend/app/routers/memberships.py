@@ -10,7 +10,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.models.organization import Organization
 from app.models.role import Role, UserRole
-from app.models.user import OrganizationInvitation, OrganizationUser, User
+from app.models.user import OrganizationInvitation, OrganizationMembershipEvent, OrganizationUser, User
 from app.permissions import OrgContext, require_permission
 from app.schemas.memberships import (
     InvitationAccept,
@@ -18,6 +18,8 @@ from app.schemas.memberships import (
     InvitationCreate,
     InvitationCreated,
     InvitationSummary,
+    MembershipRoleUpdate,
+    MembershipSummary,
 )
 from app.services.invitations import (
     INVITABLE_ROLES,
@@ -29,6 +31,142 @@ from app.services.invitations import (
 
 router = APIRouter(prefix="/api/v1/memberships", tags=["memberships"])
 INVALID_INVITATION = "This invitation is invalid or expired"
+
+
+@router.get("/members", response_model=list[MembershipSummary])
+async def list_members(
+    ctx: OrgContext = Depends(require_permission("members.manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = await db.execute(
+        select(OrganizationUser, User, Role.name)
+        .join(User, User.id == OrganizationUser.user_id)
+        .outerjoin(
+            UserRole,
+            (UserRole.user_id == OrganizationUser.user_id)
+            & (UserRole.organization_id == OrganizationUser.organization_id),
+        )
+        .outerjoin(Role, Role.id == UserRole.role_id)
+        .where(
+            OrganizationUser.organization_id == ctx.organization_id,
+            OrganizationUser.revoked_at.is_(None),
+        )
+        .order_by(OrganizationUser.is_owner.desc(), User.full_name, User.id)
+    )
+    return [
+        MembershipSummary(
+            id=membership.id,
+            user_id=user.id,
+            full_name=user.full_name,
+            email=user.email,
+            is_owner=membership.is_owner,
+            role=role_name,
+            joined_at=membership.created_at,
+        )
+        for membership, user, role_name in rows.all()
+    ]
+
+
+@router.patch("/members/{membership_id}", response_model=MembershipSummary)
+async def update_member_role(
+    membership_id: uuid.UUID,
+    body: MembershipRoleUpdate,
+    ctx: OrgContext = Depends(require_permission("members.manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.role not in INVITABLE_ROLES:
+        raise HTTPException(status_code=422, detail="This role cannot be assigned through team management")
+    membership = await db.scalar(
+        select(OrganizationUser)
+        .where(
+            OrganizationUser.id == membership_id,
+            OrganizationUser.organization_id == ctx.organization_id,
+            OrganizationUser.revoked_at.is_(None),
+        )
+        .with_for_update()
+    )
+    if membership is None:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if membership.is_owner:
+        raise HTTPException(status_code=409, detail="The business owner's role cannot be changed here")
+    target_user = await db.get(User, membership.user_id)
+    role = await db.scalar(select(Role).where(Role.name == body.role))
+    if target_user is None or role is None:
+        raise HTTPException(status_code=409, detail="Team member or role is unavailable")
+    user_role = await db.scalar(
+        select(UserRole)
+        .where(
+            UserRole.organization_id == ctx.organization_id,
+            UserRole.user_id == membership.user_id,
+        )
+        .with_for_update()
+    )
+    previous_role_id = user_role.role_id if user_role else None
+    if user_role is None:
+        db.add(UserRole(user_id=membership.user_id, organization_id=ctx.organization_id, role_id=role.id))
+    elif user_role.role_id != role.id:
+        user_role.role_id = role.id
+    if previous_role_id != role.id:
+        db.add(OrganizationMembershipEvent(
+            organization_id=ctx.organization_id,
+            membership_id=membership.id,
+            actor_user_id=ctx.user.id,
+            event_type="role_changed",
+            previous_role_id=previous_role_id,
+            new_role_id=role.id,
+        ))
+    await db.commit()
+    return MembershipSummary(
+        id=membership.id,
+        user_id=target_user.id,
+        full_name=target_user.full_name,
+        email=target_user.email,
+        is_owner=False,
+        role=role.name,
+        joined_at=membership.created_at,
+    )
+
+
+@router.delete("/members/{membership_id}", status_code=204)
+async def remove_member(
+    membership_id: uuid.UUID,
+    ctx: OrgContext = Depends(require_permission("members.manage")),
+    db: AsyncSession = Depends(get_db),
+):
+    membership = await db.scalar(
+        select(OrganizationUser)
+        .where(
+            OrganizationUser.id == membership_id,
+            OrganizationUser.organization_id == ctx.organization_id,
+            OrganizationUser.revoked_at.is_(None),
+        )
+        .with_for_update()
+    )
+    if membership is None:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if membership.is_owner:
+        raise HTTPException(status_code=409, detail="Transfer business ownership before removing the owner")
+    if membership.user_id == ctx.user.id:
+        raise HTTPException(status_code=409, detail="Ask another business administrator to remove your access")
+    user_role = await db.scalar(
+        select(UserRole).where(
+            UserRole.organization_id == ctx.organization_id,
+            UserRole.user_id == membership.user_id,
+        ).with_for_update()
+    )
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    membership.revoked_at = now
+    membership.revoked_by_user_id = ctx.user.id
+    db.add(OrganizationMembershipEvent(
+        organization_id=ctx.organization_id,
+        membership_id=membership.id,
+        actor_user_id=ctx.user.id,
+        event_type="revoked",
+        previous_role_id=user_role.role_id if user_role else None,
+        new_role_id=None,
+    ))
+    await db.commit()
+    return Response(status_code=204)
 
 
 @router.post("/invitations", response_model=InvitationCreated, status_code=201)
@@ -51,6 +189,7 @@ async def create_invitation(
         .join(User, User.id == OrganizationUser.user_id)
         .where(
             OrganizationUser.organization_id == ctx.organization_id,
+            OrganizationUser.revoked_at.is_(None),
             func.lower(User.email) == email,
         )
     )
@@ -187,31 +326,56 @@ async def accept_invitation(
         raise HTTPException(status_code=409, detail="The invited business role is no longer available")
 
     existing_membership = await db.scalar(
-        select(OrganizationUser.id).where(
+        select(OrganizationUser).where(
             OrganizationUser.organization_id == invitation.organization_id,
             OrganizationUser.user_id == user.id,
-        )
+        ).with_for_update()
     )
-    if existing_membership is not None:
+    if existing_membership is not None and existing_membership.revoked_at is None:
         invitation.revoked_at = now
         invitation.revoked_by_user_id = user.id
         await db.commit()
         raise HTTPException(status_code=409, detail="You already belong to this business")
+    if existing_membership is not None and existing_membership.is_owner:
+        raise HTTPException(status_code=409, detail="Business owners cannot rejoin through a member invitation")
 
-    membership = OrganizationUser(
-        organization_id=invitation.organization_id,
-        user_id=user.id,
-        is_owner=False,
-    )
+    previous_user_role = None
+    if existing_membership is None:
+        membership = OrganizationUser(
+            organization_id=invitation.organization_id,
+            user_id=user.id,
+            is_owner=False,
+        )
+        event_type = "created"
+        previous_role_id = None
+        db.add(membership)
+    else:
+        membership = existing_membership
+        event_type = "reinstated"
+        existing_membership.revoked_at = None
+        existing_membership.revoked_by_user_id = None
+        previous_user_role = await db.scalar(
+            select(UserRole).where(
+                UserRole.user_id == user.id,
+                UserRole.organization_id == invitation.organization_id,
+            ).with_for_update()
+        )
+        previous_role_id = previous_user_role.role_id if previous_user_role else None
     invitation.accepted_at = now
     invitation.accepted_by_user_id = user.id
-    db.add(membership)
     try:
         await db.flush()
-        db.add(UserRole(
-            user_id=user.id,
+        if existing_membership is None or previous_user_role is None:
+            db.add(UserRole(user_id=user.id, organization_id=invitation.organization_id, role_id=role.id))
+        else:
+            previous_user_role.role_id = role.id
+        db.add(OrganizationMembershipEvent(
             organization_id=invitation.organization_id,
-            role_id=role.id,
+            membership_id=membership.id,
+            actor_user_id=user.id,
+            event_type=event_type,
+            previous_role_id=previous_role_id,
+            new_role_id=role.id,
         ))
         await db.commit()
     except IntegrityError as exc:

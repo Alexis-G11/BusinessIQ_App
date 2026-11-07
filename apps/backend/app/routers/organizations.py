@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models.organization import Organization
 from app.models.role import Role, UserRole
 from app.models.trial_decision import OrganizationTrialDecision
-from app.models.user import OrganizationUser, User
+from app.models.user import OrganizationMembershipEvent, OrganizationUser, User
 from app.money import currency_exponent
 from app.schemas.organizations import OrganizationCreate, OrganizationMembershipOut
 from app.services.accounting.chart_of_accounts_service import seed_default_chart_of_accounts
@@ -45,7 +45,7 @@ async def list_organizations(
                 & (UserRole.user_id == user.id),
             )
             .outerjoin(Role, Role.id == UserRole.role_id)
-            .where(OrganizationUser.user_id == user.id)
+            .where(OrganizationUser.user_id == user.id, OrganizationUser.revoked_at.is_(None))
             .order_by(Organization.name, Organization.id)
         )
     ).all()
@@ -105,6 +105,13 @@ async def create_organization(
         db.add_all([organization, membership])
         await db.flush()
         db.add(UserRole(user_id=user.id, organization_id=organization.id, role_id=owner_role.id))
+        db.add(OrganizationMembershipEvent(
+            organization_id=organization.id,
+            membership_id=membership.id,
+            actor_user_id=user.id,
+            event_type="created",
+            new_role_id=owner_role.id,
+        ))
         db.add(
             OrganizationTrialDecision(
                 organization_id=organization.id,
