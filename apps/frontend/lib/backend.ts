@@ -72,7 +72,7 @@ export class BackendError extends Error {
 export async function backendRequest<T>(
   path: string,
   options: {
-    method?: 'GET' | 'POST' | 'PATCH';
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
     body?: unknown;
     organizationId?: string;
     idempotencyKey?: string;
@@ -215,5 +215,53 @@ export const backendReportsApi = {
   balanceSheet(organizationId: string, asOf: string): Promise<BackendBalanceSheet> {
     const query = new URLSearchParams({ as_of: asOf });
     return backendRequest(`/reports/balance-sheet?${query.toString()}`, { organizationId });
+  },
+};
+
+export type AssignableBusinessRole = 'manager' | 'accountant' | 'employee' | 'inventory_staff' | 'analyst';
+
+export interface BackendInvitation {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  accepted_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export const backendMembershipApi = {
+  createInvitation(organizationId: string, email: string, role: AssignableBusinessRole): Promise<{
+    id: string;
+    email: string;
+    role: AssignableBusinessRole;
+    token: string;
+    expires_at: string;
+  }> {
+    return backendRequest('/memberships/invitations', {
+      method: 'POST',
+      organizationId,
+      body: { email, role },
+    });
+  },
+  listInvitations(organizationId: string): Promise<BackendInvitation[]> {
+    return backendRequest('/memberships/invitations', { organizationId });
+  },
+  revokeInvitation(organizationId: string, invitationId: string): Promise<void> {
+    return backendRequest(`/memberships/invitations/${encodeURIComponent(invitationId)}`, {
+      method: 'DELETE',
+      organizationId,
+    });
+  },
+  acceptInvitation(token: string): Promise<{
+    organization_id: string;
+    organization_name: string;
+    membership_id: string;
+    role: AssignableBusinessRole;
+  }> {
+    return backendRequest('/memberships/invitations/accept', {
+      method: 'POST',
+      body: { token },
+    });
   },
 };
