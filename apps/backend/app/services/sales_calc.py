@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.money import apply_bps, cents_to_decimal
+from app.money import apply_bps, cents_to_decimal, round_to_currency_precision
 
 ZERO = Decimal("0")
 MAX_CENTS = 2_000_000_000  # database integer columns hold up to about 2.1 billion
@@ -20,14 +20,19 @@ class Totals:
     total_cents: int
 
 
-def compute_totals(line_totals: list[int], discount_cents: int, tax_rate_bps: int) -> Totals:
+def compute_totals(
+    line_totals: list[int],
+    discount_cents: int,
+    tax_rate_bps: int,
+    currency_exponent: int = 2,
+) -> Totals:
     subtotal = sum(line_totals)
     if subtotal > MAX_CENTS:
         raise SaleError("This sale is too large to record")
     if discount_cents < 0 or discount_cents > subtotal:
         raise SaleError("The discount cannot be negative or more than the subtotal")
     taxable = subtotal - discount_cents
-    tax = apply_bps(taxable, tax_rate_bps)
+    tax = round_to_currency_precision(apply_bps(taxable, tax_rate_bps), currency_exponent)
     return Totals(subtotal, discount_cents, tax, taxable + tax)
 
 

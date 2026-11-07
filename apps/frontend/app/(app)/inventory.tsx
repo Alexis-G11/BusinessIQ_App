@@ -20,6 +20,7 @@ export default function InventoryScreen() {
   if (error || summaryError) return <ErrorState message={error ?? summaryError ?? 'Failed to load inventory.'} />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
 
   const activeProducts = products.filter((p) => p.is_active);
   const inventoryValue = (summary?.inventory_value_cents ?? 0) / 100;
@@ -34,7 +35,7 @@ export default function InventoryScreen() {
       <View style={styles.kpiRow}>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Inventory Value</Text>
-          <Text style={styles.kpiValue}>{formatCurrency(inventoryValue, currency)}</Text>
+          <Text style={styles.kpiValue}>{formatCurrency(inventoryValue, currency, currencyExponent)}</Text>
           <Text style={styles.kpiMeta}>{summary?.active_products ?? activeProducts.length} active products · weighted average</Text>
         </Card>
         <Card style={styles.kpiCard}>
@@ -87,7 +88,7 @@ export default function InventoryScreen() {
                     </View>
                   )}
                 </View>
-                <Text style={styles.colValue}>{formatCurrency(value, currency)}</Text>
+                <Text style={styles.colValue}>{formatCurrency(value, currency, currencyExponent)}</Text>
                 <View style={styles.colStatus}>
                   <Badge label={product.is_active ? 'Active' : 'Inactive'} tone={product.is_active ? 'success' : 'neutral'} />
                 </View>

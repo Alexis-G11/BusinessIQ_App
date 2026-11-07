@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product, ProductCategory
 from app.models.supplier import Supplier
+from app.money import validate_currency_precision
 from app.permissions import OrgContext, require_permission
 
 router = APIRouter(prefix="/api/v1/products", tags=["products"])
@@ -140,6 +141,12 @@ async def create_product(
     ctx: OrgContext = Depends(require_permission("products.manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    try:
+        validate_currency_precision(body.cost_price_cents, ctx.currency_exponent)
+        validate_currency_precision(body.selling_price_cents, ctx.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
     request_hash = hashlib.sha256(
         json.dumps(body.model_dump(mode="json"), sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -205,6 +212,16 @@ async def update_product(
     ctx: OrgContext = Depends(require_permission("products.manage")),
     db: AsyncSession = Depends(get_db),
 ):
+    if body.cost_price_cents is not None:
+        try:
+            validate_currency_precision(body.cost_price_cents, ctx.currency_exponent)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if body.selling_price_cents is not None:
+        try:
+            validate_currency_precision(body.selling_price_cents, ctx.currency_exponent)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     product = await _get_product(db, ctx.organization_id, product_id)
     values = body.model_dump(exclude_unset=True)  # only what the caller actually sent
 

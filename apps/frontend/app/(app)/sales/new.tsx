@@ -75,6 +75,7 @@ export default function NewSaleScreen() {
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const quoteKey = `${currentBusiness?.id ?? ''}:${JSON.stringify(cart.map(({ productId, quantity }) => [productId, quantity]))}:${discount}`;
   const quote = quoteState?.key === quoteKey ? quoteState.quote ?? null : null;
   const quoteError = quoteState?.key === quoteKey ? quoteState.error ?? null : null;
@@ -87,7 +88,7 @@ export default function NewSaleScreen() {
       try {
         const result = await saleApi.quote(currentBusiness.id, {
           items: cart.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
-          discount_cents: moneyToCents(discount),
+          discount_cents: moneyToCents(discount, currentBusiness.currency_exponent),
         });
         if (active) setQuoteState({ key: quoteKey, quote: result });
       } catch (e) {
@@ -117,7 +118,9 @@ export default function NewSaleScreen() {
     setError(null);
 
     try {
-      const paidCents = paidAmount.trim() ? moneyToCents(paidAmount) : quote.total_cents;
+      const paidCents = paidAmount.trim()
+        ? moneyToCents(paidAmount, currentBusiness.currency_exponent)
+        : quote.total_cents;
       if (paidCents > quote.total_cents) throw new Error('Amount paid cannot exceed the sale total.');
       if (paidCents < quote.total_cents && !customerId) {
         throw new Error('Select a customer when the sale is not paid in full.');
@@ -136,7 +139,7 @@ export default function NewSaleScreen() {
 
       Alert.alert(
         'Sale Complete',
-        `Sale ${sale.reference ?? ''} recorded successfully. Total: ${formatCurrency(sale.total_cents / 100, currency)}`,
+        `Sale ${sale.reference ?? ''} recorded successfully. Total: ${formatCurrency(sale.total_cents / 100, currency, currencyExponent)}`,
       );
       router.replace('/(app)/sales');
     } catch (e) {
@@ -179,7 +182,7 @@ export default function NewSaleScreen() {
                     <Text style={styles.productItemName}>{product.name}</Text>
                     <Text style={styles.productItemStock}>Stock: {Number(product.stock_quantity)} {product.unit}</Text>
                   </View>
-                  <Text style={styles.productItemPrice}>{formatCurrency(Number(product.selling_price), currency)}</Text>
+                  <Text style={styles.productItemPrice}>{formatCurrency(Number(product.selling_price), currency, currencyExponent)}</Text>
                 </TouchableOpacity>
               ))
             )}
@@ -200,7 +203,7 @@ export default function NewSaleScreen() {
                 <View key={item.productId} style={styles.cartItem}>
                   <View style={styles.cartItemInfo}>
                     <Text style={styles.cartItemName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.cartItemPrice}>{formatCurrency(item.price, currency)}</Text>
+                    <Text style={styles.cartItemPrice}>{formatCurrency(item.price, currency, currencyExponent)}</Text>
                   </View>
                   <View style={styles.cartItemControls}>
                     <TouchableOpacity onPress={() => updateQuantity(item.productId, -1)} style={styles.qtyBtn}>
@@ -223,17 +226,17 @@ export default function NewSaleScreen() {
             <View style={styles.cartSummary}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>{formatCurrency(subtotal, currency)}</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(subtotal, currency, currencyExponent)}</Text>
               </View>
               <Input label="Discount" value={discount} onChangeText={setDiscount} placeholder="0.00" keyboardType="numeric" hint={`In ${currency}`} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Tax (business settings)</Text>
-                <Text style={styles.summaryValue}>{quote ? formatCurrency(quote.tax_cents / 100, currency) : '—'}</Text>
+                <Text style={styles.summaryValue}>{quote ? formatCurrency(quote.tax_cents / 100, currency, currencyExponent) : '—'}</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalValue}>
-                  {quoteLoading ? 'Calculating…' : quote ? formatCurrency(quote.total_cents / 100, currency) : '—'}
+                  {quoteLoading ? 'Calculating…' : quote ? formatCurrency(quote.total_cents / 100, currency, currencyExponent) : '—'}
                 </Text>
               </View>
 

@@ -27,6 +27,7 @@ export default function ReportsScreen() {
   if (!currentBusiness || !stats) return <EmptyState title="No data" message="Record transactions to generate reports." />;
 
   const currency = currentBusiness.currency;
+  const currencyExponent = currentBusiness.currency_exponent;
 
   const completedSales = sales.filter((s) => s.status === 'completed');
   const totalSalesRevenue = completedSales.reduce((sum, s) => sum + Number(s.total), 0);
@@ -60,15 +61,15 @@ export default function ReportsScreen() {
       <View style={styles.summaryRow}>
         <Card style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Total Revenue</Text>
-          <Text style={styles.summaryValue}>{formatCurrency(totalSalesRevenue, currency)}</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(totalSalesRevenue, currency, currencyExponent)}</Text>
         </Card>
         <Card style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Total Expenses</Text>
-          <Text style={[styles.summaryValue, { color: colors.danger }]}>{formatCurrency(totalExpensesAmount, currency)}</Text>
+          <Text style={[styles.summaryValue, { color: colors.danger }]}>{formatCurrency(totalExpensesAmount, currency, currencyExponent)}</Text>
         </Card>
         <Card style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Net Profit</Text>
-          <Text style={[styles.summaryValue, { color: netProfit >= 0 ? colors.success : colors.danger }]}>{formatCurrency(netProfit, currency)}</Text>
+          <Text style={[styles.summaryValue, { color: netProfit >= 0 ? colors.success : colors.danger }]}>{formatCurrency(netProfit, currency, currencyExponent)}</Text>
         </Card>
       </View>
 
@@ -90,19 +91,19 @@ export default function ReportsScreen() {
               <View style={styles.reportBody}>
                 <View style={styles.statementRow}>
                   <Text style={styles.statementLabel}>Revenue (Sales)</Text>
-                  <Text style={styles.statementValue}>{formatCurrency(totalSalesRevenue, currency)}</Text>
+                  <Text style={styles.statementValue}>{formatCurrency(totalSalesRevenue, currency, currencyExponent)}</Text>
                 </View>
                 <View style={styles.statementDivider} />
                 {Object.entries(expenseByCat).map(([cat, amount]) => (
                   <View key={cat} style={styles.statementRow}>
                     <Text style={styles.statementSubLabel}>{cat.replace(/_/g, ' ')}</Text>
-                    <Text style={[styles.statementSubValue, { color: colors.danger }]}>({formatCurrency(amount, currency)})</Text>
+                    <Text style={[styles.statementSubValue, { color: colors.danger }]}>({formatCurrency(amount, currency, currencyExponent)})</Text>
                   </View>
                 ))}
                 <View style={styles.statementDivider} />
                 <View style={styles.statementRow}>
                   <Text style={styles.statementBold}>Net Profit</Text>
-                  <Text style={[styles.statementBold, { color: netProfit >= 0 ? colors.success : colors.danger }]}>{formatCurrency(netProfit, currency)}</Text>
+                  <Text style={[styles.statementBold, { color: netProfit >= 0 ? colors.success : colors.danger }]}>{formatCurrency(netProfit, currency, currencyExponent)}</Text>
                 </View>
               </View>
             )}
@@ -112,18 +113,18 @@ export default function ReportsScreen() {
                 <Text style={styles.cfSection}>Cash Inflows</Text>
                 <View style={styles.statementRow}>
                   <Text style={styles.statementLabel}>Sales Payments Received</Text>
-                  <Text style={[styles.statementValue, { color: colors.success }]}>{formatCurrency(paymentsIn, currency)}</Text>
+                  <Text style={[styles.statementValue, { color: colors.success }]}>{formatCurrency(paymentsIn, currency, currencyExponent)}</Text>
                 </View>
                 <View style={styles.statementDivider} />
                 <Text style={styles.cfSection}>Cash Outflows</Text>
                 <View style={styles.statementRow}>
                   <Text style={styles.statementLabel}>Expenses Paid</Text>
-                  <Text style={[styles.statementValue, { color: colors.danger }]}>({formatCurrency(paymentsOut, currency)})</Text>
+                  <Text style={[styles.statementValue, { color: colors.danger }]}>({formatCurrency(paymentsOut, currency, currencyExponent)})</Text>
                 </View>
                 <View style={styles.statementDivider} />
                 <View style={styles.statementRow}>
                   <Text style={styles.statementBold}>Net Cash Flow</Text>
-                  <Text style={[styles.statementBold, { color: netCashFlow >= 0 ? colors.success : colors.danger }]}>{formatCurrency(netCashFlow, currency)}</Text>
+                  <Text style={[styles.statementBold, { color: netCashFlow >= 0 ? colors.success : colors.danger }]}>{formatCurrency(netCashFlow, currency, currencyExponent)}</Text>
                 </View>
               </View>
             )}
@@ -139,7 +140,7 @@ export default function ReportsScreen() {
                         <Text style={styles.listTitle}>{sale.contact_name ?? 'Walk-in'}</Text>
                         <Text style={styles.listMeta}>{sale.sale_number} · {formatDate(sale.created_at)}</Text>
                       </View>
-                      <Text style={styles.listAmount}>{formatCurrency(Number(sale.total), currency)}</Text>
+                      <Text style={styles.listAmount}>{formatCurrency(Number(sale.total), currency, currencyExponent)}</Text>
                     </View>
                   ))
                 )}
@@ -154,7 +155,7 @@ export default function ReportsScreen() {
                   Object.entries(expenseByCat).sort((a, b) => b[1] - a[1]).map(([cat, amount]) => (
                     <View key={cat} style={styles.statementRow}>
                       <Text style={styles.statementSubLabel}>{cat.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}</Text>
-                      <Text style={styles.statementSubValue}>{formatCurrency(amount, currency)}</Text>
+                      <Text style={styles.statementSubValue}>{formatCurrency(amount, currency, currencyExponent)}</Text>
                     </View>
                   ))
                 )}

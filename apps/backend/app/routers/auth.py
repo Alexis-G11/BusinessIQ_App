@@ -14,6 +14,7 @@ from app.models.organization import Organization
 from app.models.role import Role, UserRole
 from app.models.trial_decision import OrganizationTrialDecision
 from app.models.user import OrganizationUser, PhoneTrialClaim, User
+from app.money import currency_exponent
 from app.permissions import OrgContext, get_org_context
 from app.subscriptions import trial_expiry
 from app.schemas.auth import (
@@ -233,6 +234,7 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
             business_size=payload.business_size,
             country=payload.country,
             currency=payload.currency,
+            currency_exponent=currency_exponent(payload.currency),
             timezone=payload.timezone,
             subscription_status="pending_verification",
             trial_ends_at=None,

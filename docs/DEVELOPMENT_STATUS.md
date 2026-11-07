@@ -2,6 +2,15 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: currency precision enforcement bridge
+
+- Added `organizations.currency_exponent` in additive migration `5ec2a4b9d710`; existing organizations receive exponent 2 to preserve historical amount interpretation.
+- New organization creation derives exponent from its selected currency. Backend write paths for products, sales, purchases, expenses, and customer/supplier payments validate configured precision. Sale tax rounds half-up to the organization exponent.
+- Expo money input and formatting use the selected business exponent.
+- Operational amount columns still store hundredths of a major unit. This bridge does not complete SRS requirements for transaction currency codes, FX/base-currency snapshots, or multi-currency settlement. The migration was not applied to a database.
+- Currency fraction digits follow supported currency data; CLDR describes the supplemental currency fraction digits at [Unicode CLDR number formatting](https://unicode.org/reports/tr35/tr35-numbers.html). Production should pin and review an explicit supported-currency table.
+- Verification for this increment: pure backend money/sale calculation tests pass (9 tests), Expo TypeScript reports zero diagnostics, Python AST parsing passes, and the migration source graph has one head (`5ec2a4b9d710`). Full backend suite unavailable on this host because its Python 3.9 lacks the repository test dependency `pytest` (CI uses Python 3.12); no database migration was applied.
+
 ## Repository
 
 - Branch: `codex/businessiq-development`

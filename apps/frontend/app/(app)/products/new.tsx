@@ -58,7 +58,7 @@ export default function NewProductScreen() {
         selling_price: Number(form.selling_price),
         reorder_threshold: Number(form.reorder_threshold) || 0,
         unit: form.unit,
-      }, idempotencyKey.current);
+      }, idempotencyKey.current, currentBusiness.currency_exponent);
       router.replace('/(app)/products');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create product');

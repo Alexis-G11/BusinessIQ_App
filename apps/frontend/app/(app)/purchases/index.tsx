@@ -26,6 +26,7 @@ export default function PurchasesScreen() {
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const totalPurchases = purchases.reduce((sum, p) => sum + Number(p.total), 0);
   const totalOutstanding = purchases.reduce((sum, p) => sum + (Number(p.total) - Number(p.paid_amount)), 0);
 
@@ -34,7 +35,7 @@ export default function PurchasesScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.pageTitle}>Purchases</Text>
-          <Text style={styles.pageSubtitle}>{purchases.length} purchase orders · {formatCurrency(totalPurchases, currency)} total</Text>
+          <Text style={styles.pageSubtitle}>{purchases.length} purchase orders · {formatCurrency(totalPurchases, currency, currencyExponent)} total</Text>
         </View>
         <Button label="New Purchase" onPress={() => router.push('/(app)/purchases/new' as any)} leftIcon={<Plus size={18} color={colors.textInverse} />} />
       </View>
@@ -42,11 +43,11 @@ export default function PurchasesScreen() {
       <View style={styles.kpiRow}>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Total Purchases</Text>
-          <Text style={styles.kpiValue}>{formatCurrency(totalPurchases, currency)}</Text>
+          <Text style={styles.kpiValue}>{formatCurrency(totalPurchases, currency, currencyExponent)}</Text>
         </Card>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Outstanding</Text>
-          <Text style={[styles.kpiValue, { color: colors.danger }]}>{formatCurrency(totalOutstanding, currency)}</Text>
+          <Text style={[styles.kpiValue, { color: colors.danger }]}>{formatCurrency(totalOutstanding, currency, currencyExponent)}</Text>
         </Card>
       </View>
 
@@ -72,8 +73,8 @@ export default function PurchasesScreen() {
                   <Text style={styles.purchaseMeta}>{purch.purchase_number} · {formatDate(purch.created_at)}</Text>
                 </View>
                 <View style={styles.purchaseRight}>
-                  <Text style={styles.purchaseTotal}>{formatCurrency(Number(purch.total), currency)}</Text>
-                  {outstanding > 0 && <Text style={styles.purchaseOutstanding}>{formatCurrency(outstanding, currency)} due</Text>}
+                  <Text style={styles.purchaseTotal}>{formatCurrency(Number(purch.total), currency, currencyExponent)}</Text>
+                  {outstanding > 0 && <Text style={styles.purchaseOutstanding}>{formatCurrency(outstanding, currency, currencyExponent)} due</Text>}
                   <Badge label={purch.status} tone={purch.status === 'received' ? 'success' : purch.status === 'partial' ? 'warning' : 'neutral'} />
                 </View>
               </View>

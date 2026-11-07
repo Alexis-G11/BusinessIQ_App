@@ -40,7 +40,7 @@ export default function NewPurchaseScreen() {
     const quantity = Number(item.quantity);
     if (!Number.isSafeInteger(quantity) || quantity <= 0) return sum;
     try {
-      return sum + quantity * moneyToCents(item.unitCost);
+      return sum + quantity * moneyToCents(item.unitCost, currentBusiness?.currency_exponent ?? 2);
     } catch {
       return sum;
     }
@@ -63,10 +63,12 @@ export default function NewPurchaseScreen() {
         return {
           product_id: item.productId,
           quantity,
-          unit_cost_cents: moneyToCents(item.unitCost),
+          unit_cost_cents: moneyToCents(item.unitCost, currentBusiness.currency_exponent),
         };
       });
-      const amountPaidCents = paidAmount.trim() ? moneyToCents(paidAmount) : 0;
+      const amountPaidCents = paidAmount.trim()
+        ? moneyToCents(paidAmount, currentBusiness.currency_exponent)
+        : 0;
       if (amountPaidCents > totalCents) throw new Error('Amount paid cannot exceed the purchase total.');
 
       const request = {

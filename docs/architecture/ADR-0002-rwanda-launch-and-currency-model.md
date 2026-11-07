@@ -15,11 +15,13 @@ Before changing stored amounts, design a migration that preserves old values and
 
 ## Consequences and open work
 
-- The current `integer cents` and fixed two-decimal conversion functions are insufficient for currency-specific precision.
-- A typed money/currency policy and a data migration plan are required before adopting RWF in existing transaction data.
+- New organizations now persist a `currency_exponent` derived from their selected supported currency. RWF, UGX, XAF, and XOF are configured as zero-decimal currencies; the currently supported two-decimal currencies use exponent 2.
+- Additive migration `5ec2a4b9d710` assigns exponent 2 to every existing organization. This preserves historical amount meaning and does not reinterpret posted rows when a legacy organization uses RWF.
+- Operational integer amount columns remain encoded as hundredths of the major unit for compatibility. New writes for zero-decimal organizations must be multiples of 100, and tax rounds half-up to configured precision. This is an enforcement bridge, not completion of the SRS money model.
+- Existing rows do not have per-transaction currency codes or exchange-rate snapshots. Multi-currency transactions, base-currency accounting, and historical FX support still require schema and migration design.
 - Rwanda tax rates must be effective-dated configuration; legal interpretation and launch rules require qualified review.
 - EBM/VSDC integration requires official protocol review and external approval; the application must not claim certification prematurely.
 
 ## Verification
 
-Tests must cover currency precision, rounding, exchange-rate snapshots, allocation currency matching, tax effective dates, and preservation of historical posted values.
+Tests must cover currency precision, rounding, exchange-rate snapshots, allocation currency matching, tax effective dates, and preservation of historical posted values. Current helper and sale-math tests cover precision, zero-decimal rounding, and tax totals; database migration/backfill verification remains outstanding.

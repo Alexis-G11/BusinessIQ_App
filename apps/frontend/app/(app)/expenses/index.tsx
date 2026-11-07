@@ -39,6 +39,7 @@ export default function ExpensesScreen() {
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
   return (
@@ -50,7 +51,7 @@ export default function ExpensesScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.pageTitle}>Expenses</Text>
-          <Text style={styles.pageSubtitle}>{expenses.length} records · {formatCurrency(totalExpenses, currency)} total</Text>
+          <Text style={styles.pageSubtitle}>{expenses.length} records · {formatCurrency(totalExpenses, currency, currencyExponent)} total</Text>
         </View>
         <Button label="Add Expense" onPress={() => router.push('/(app)/expenses/new' as any)} leftIcon={<Plus size={18} color={colors.textInverse} />} />
       </View>
@@ -82,7 +83,7 @@ export default function ExpensesScreen() {
                   {expense.recurring && <Badge label="Recurring" tone="info" />}
                 </View>
               </View>
-              <Text style={styles.expenseAmount}>-{formatCurrency(Number(expense.amount), currency)}</Text>
+              <Text style={styles.expenseAmount}>-{formatCurrency(Number(expense.amount), currency, currencyExponent)}</Text>
             </View>
           ))}
         </Card>

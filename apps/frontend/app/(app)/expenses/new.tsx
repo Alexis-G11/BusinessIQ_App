@@ -74,7 +74,7 @@ export default function NewExpenseScreen() {
         payment_method: form.payment_method as any,
         expense_date: form.expense_date,
         notes: form.notes.trim() || null,
-      }, idempotencyKey.current);
+      }, idempotencyKey.current, currentBusiness.currency_exponent);
       router.replace('/(app)/expenses');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create expense');

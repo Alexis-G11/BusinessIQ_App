@@ -11,7 +11,7 @@ from app.models.customer import Customer
 from app.models.organization import Organization
 from app.models.payments import Payment, PaymentAllocation
 from app.models.sales import Sale
-from app.money import cents_to_decimal
+from app.money import cents_to_decimal, validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
 from app.services.payments_calc import PaymentError, allocate
 from app.services.sales_calc import METHOD_ACCOUNT, payment_status
@@ -54,6 +54,10 @@ async def record_customer_payment(
         raise HTTPException(status_code=422, detail="customer_id is not valid for this business")
 
     org = await db.get(Organization, organization_id)
+    try:
+        validate_currency_precision(amount_cents, org.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     today = datetime.now(ZoneInfo(org.timezone or "UTC")).date()
     pay_day = payment_date or today
     if pay_day > today:

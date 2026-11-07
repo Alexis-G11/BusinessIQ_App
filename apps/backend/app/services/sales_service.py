@@ -15,6 +15,7 @@ from app.models.organization import Organization
 from app.models.payments import Payment, PaymentAllocation
 from app.models.product import Product
 from app.models.sales import Sale, SaleItem
+from app.money import validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
 from app.services.sales_calc import (
     ACCOUNT_CODE,
@@ -86,6 +87,12 @@ async def create_sale(
             return existing, False
 
     org = await db.get(Organization, organization_id)
+    try:
+        validate_currency_precision(discount_cents, org.currency_exponent)
+        for payment in payments:
+            validate_currency_precision(payment.amount_cents, org.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     today = datetime.now(ZoneInfo(org.timezone or "UTC")).date()  # "today" in the business's own timezone
     sale_day = sale_date or today
     if sale_day > today:
@@ -118,6 +125,11 @@ async def create_sale(
         raise HTTPException(status_code=404, detail="One or more products were not found")
     for product_id, quantity in wanted.items():
         product = products[product_id]
+        try:
+            validate_currency_precision(product.selling_price_cents, org.currency_exponent)
+            validate_currency_precision(product.cost_price_cents or 0, org.currency_exponent)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         if not product.is_active:
             raise HTTPException(status_code=409, detail=f"'{product.name}' is archived and cannot be sold")
         available = product.stock_quantity or 0
@@ -130,7 +142,12 @@ async def create_sale(
     # 4. The server works out every number from the database's prices, never from the client
     try:
         line_totals = [wanted[pid] * products[pid].selling_price_cents for pid in wanted]
-        totals = compute_totals(line_totals, discount_cents, org.tax_rate_bps or 0)
+        totals = compute_totals(
+            line_totals,
+            discount_cents,
+            org.tax_rate_bps or 0,
+            org.currency_exponent,
+        )
         paid_total = sum(p.amount_cents for p in payments)
         if paid_total > MAX_CENTS:
             raise SaleError("The payments are too large to record")

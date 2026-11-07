@@ -16,6 +16,7 @@ export default function PayablesScreen() {
   if (loading) return <LoadingState message="Loading payables..." />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const outstanding = purchases.filter((p) => p.status !== 'voided');
   const totalOutstanding = outstanding.reduce((sum, p) => sum + (Number(p.total) - Number(p.paid_amount)), 0);
   const unpaid = outstanding.filter((p) => Number(p.paid_amount) < Number(p.total));
@@ -30,12 +31,12 @@ export default function PayablesScreen() {
       <View style={styles.kpiRow}>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Total Outstanding</Text>
-          <Text style={[styles.kpiValue, { color: colors.danger }]}>{formatCurrency(totalOutstanding, currency)}</Text>
+          <Text style={[styles.kpiValue, { color: colors.danger }]}>{formatCurrency(totalOutstanding, currency, currencyExponent)}</Text>
           <Text style={styles.kpiMeta}>{unpaid.length} unpaid purchases</Text>
         </Card>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Fully Paid</Text>
-          <Text style={[styles.kpiValue, { color: colors.success }]}>{formatCurrency(outstanding.reduce((s, p) => s + Number(p.paid_amount), 0), currency)}</Text>
+          <Text style={[styles.kpiValue, { color: colors.success }]}>{formatCurrency(outstanding.reduce((s, p) => s + Number(p.paid_amount), 0), currency, currencyExponent)}</Text>
           <Text style={styles.kpiMeta}>{outstanding.filter((p) => Number(p.paid_amount) >= Number(p.total)).length} purchases</Text>
         </Card>
       </View>
@@ -55,7 +56,7 @@ export default function PayablesScreen() {
                   <Text style={styles.purchaseMeta}>{purch.purchase_number} · {formatDate(purch.created_at)}</Text>
                 </View>
                 <View style={styles.purchaseRight}>
-                  <Text style={styles.purchaseOutstanding}>{formatCurrency(outstandingAmt, currency)}</Text>
+                  <Text style={styles.purchaseOutstanding}>{formatCurrency(outstandingAmt, currency, currencyExponent)}</Text>
                   <Badge label={purch.status} tone={purch.status === 'received' ? 'success' : purch.status === 'partial' ? 'warning' : 'neutral'} />
                 </View>
               </View>

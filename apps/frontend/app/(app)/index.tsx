@@ -30,6 +30,7 @@ export default function DashboardScreen() {
   if (!stats) return <EmptyState title="No data yet" message="Start recording sales and expenses to see your dashboard." />;
 
   const currency = currentBusiness.currency;
+  const currencyExponent = currentBusiness.currency_exponent ?? 2;
 
   return (
     <ScrollView
@@ -46,23 +47,23 @@ export default function DashboardScreen() {
       <View style={styles.kpiRow}>
         <KPICard
           label="Revenue (MTD)"
-          value={formatCompactCurrency(stats.monthRevenue, currency)}
+          value={formatCompactCurrency(stats.monthRevenue, currency, currencyExponent)}
           icon={<TrendingUp size={16} color={colors.blue} />}
         />
         <KPICard
           label="Expenses (MTD)"
-          value={formatCompactCurrency(stats.monthExpenses, currency)}
+          value={formatCompactCurrency(stats.monthExpenses, currency, currencyExponent)}
           icon={<Receipt size={16} color={colors.danger} />}
         />
         <KPICard
           label="Net Profit (MTD)"
-          value={formatCompactCurrency(stats.monthRevenue - stats.monthExpenses, currency)}
+          value={formatCompactCurrency(stats.monthRevenue - stats.monthExpenses, currency, currencyExponent)}
           icon={<DollarSign size={16} color={colors.success} />}
           delta={stats.monthRevenue > 0 ? { value: `${((stats.monthRevenue - stats.monthExpenses) / stats.monthRevenue * 100).toFixed(0)}% margin`, positive: stats.monthRevenue > stats.monthExpenses } : null}
         />
         <KPICard
           label="Cash Position"
-          value={formatCompactCurrency(stats.revenue - stats.expenses, currency)}
+          value={formatCompactCurrency(stats.revenue - stats.expenses, currency, currencyExponent)}
           icon={<Wallet size={16} color={colors.info} />}
         />
       </View>
@@ -81,12 +82,12 @@ export default function DashboardScreen() {
         />
         <KPICard
           label="Receivables"
-          value={formatCompactCurrency(stats.receivables, currency)}
+          value={formatCompactCurrency(stats.receivables, currency, currencyExponent)}
           icon={<ArrowDownToLine size={16} color={colors.warning} />}
         />
         <KPICard
           label="Payables"
-          value={formatCompactCurrency(stats.payables, currency)}
+          value={formatCompactCurrency(stats.payables, currency, currencyExponent)}
           icon={<ArrowUpFromLine size={16} color={colors.danger} />}
         />
       </View>
@@ -104,7 +105,7 @@ export default function DashboardScreen() {
               data={stats.expenseByCategory.map((e) => ({ label: e.label, value: e.value, color: e.color }))}
               size={140}
               centerLabel="Total"
-              centerValue={formatCompactCurrency(stats.expenseByCategory.reduce((s, e) => s + e.value, 0), currency)}
+              centerValue={formatCompactCurrency(stats.expenseByCategory.reduce((s, e) => s + e.value, 0), currency, currencyExponent)}
             />
           ) : (
             <View style={styles.noChartData}>

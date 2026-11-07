@@ -24,6 +24,7 @@ export default function PaymentsScreen() {
   if (loading) return <LoadingState message="Loading payments..." />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -62,7 +63,7 @@ export default function PaymentsScreen() {
                 <Text style={styles.paymentMeta}>{payment.payment_number} · {formatDate(payment.payment_date)} · {payment.payment_method}</Text>
               </View>
               <Text style={[styles.paymentAmount, { color: payment.contact_type === 'customer' ? colors.success : colors.danger }]}>
-                {payment.contact_type === 'customer' ? '+' : '-'}{formatCurrency(Number(payment.amount), currency)}
+                {payment.contact_type === 'customer' ? '+' : '-'}{formatCurrency(Number(payment.amount), currency, currencyExponent)}
               </Text>
             </View>
           ))}

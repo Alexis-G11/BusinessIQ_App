@@ -1,5 +1,12 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Currency precision enforcement bridge
+
+- Added organization currency precision and an additive migration that preserves existing organizations at their historical two-decimal interpretation.
+- New organization setup derives precision from its selected supported currency. Sales, product prices, purchases, expenses, and payments reject values smaller than the currency unit; sale tax rounds half-up to that precision.
+- Expo money input and formatting now follow the selected business precision.
+- Operational values remain encoded as hundredths for compatibility. Per-transaction currency codes, FX snapshots, and a complete SRS-aligned monetary schema remain future work; the migration was not applied to a database.
+
 ## 2026-11-07 — Development foundation started
 
 - Created the owner-requested `codex/businessiq-development` branch from the clean repository `main` commit; `main` was not modified.

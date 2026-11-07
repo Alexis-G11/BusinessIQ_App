@@ -11,6 +11,7 @@ from app.models.organization import Organization
 from app.models.role import Role, UserRole
 from app.models.trial_decision import OrganizationTrialDecision
 from app.models.user import OrganizationUser, User
+from app.money import currency_exponent
 from app.schemas.organizations import OrganizationCreate, OrganizationMembershipOut
 from app.services.accounting.chart_of_accounts_service import seed_default_chart_of_accounts
 from app.subscriptions import trial_expiry
@@ -84,6 +85,7 @@ async def create_organization(
         business_size=payload.business_size,
         country=payload.country,
         currency=payload.currency,
+        currency_exponent=currency_exponent(payload.currency),
         timezone=payload.timezone,
         address={"formatted": payload.address} if payload.address else None,
         phone=payload.phone,

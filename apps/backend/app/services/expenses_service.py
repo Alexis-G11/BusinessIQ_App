@@ -12,7 +12,7 @@ from app.models.expenses import Expense, ExpenseCategory
 from app.models.organization import Organization
 from app.models.payments import Payment, PaymentAllocation
 from app.models.supplier import Supplier
-from app.money import cents_to_decimal
+from app.money import cents_to_decimal, validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
 from app.services.expenses_calc import ExpenseError, expense_amounts, expense_ledger_lines
 
@@ -96,6 +96,11 @@ async def create_expense(
         return existing, False
 
     org = await db.scalar(select(Organization).where(Organization.id == organization_id))
+    try:
+        validate_currency_precision(amount_cents, org.currency_exponent)
+        validate_currency_precision(amount_paid_cents, org.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     today = datetime.now(ZoneInfo(org.timezone or "UTC")).date()
     if incurred_at > today:
         raise HTTPException(status_code=422, detail="The expense date cannot be in the future")

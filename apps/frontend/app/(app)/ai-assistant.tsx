@@ -39,22 +39,23 @@ export default function AIAssistantScreen() {
   const generateResponse = (question: string): string => {
     if (!stats || !currentBusiness) return 'I need some business data first. Try recording some sales and expenses.';
     const currency = currentBusiness.currency;
+    const currencyExponent = currentBusiness.currency_exponent;
     const q = question.toLowerCase();
 
     if (q.includes('profit') || q.includes('net')) {
       const profit = stats.revenue - stats.expenses;
       const margin = stats.revenue > 0 ? ((profit / stats.revenue) * 100).toFixed(1) : '0';
-      return `Your net profit is ${formatCurrency(profit, currency)}. That's a ${margin}% profit margin on ${formatCurrency(stats.revenue, currency)} in total revenue.`;
+      return `Your net profit is ${formatCurrency(profit, currency, currencyExponent)}. That's a ${margin}% profit margin on ${formatCurrency(stats.revenue, currency, currencyExponent)} in total revenue.`;
     }
     if (q.includes('revenue') || q.includes('sales') || q.includes('income')) {
       const completedSales = sales.filter((s) => s.status === 'completed');
-      return `Your total revenue from ${completedSales.length} completed sales is ${formatCurrency(stats.revenue, currency)}. This month you've earned ${formatCompactCurrency(stats.monthRevenue, currency)}.`;
+      return `Your total revenue from ${completedSales.length} completed sales is ${formatCurrency(stats.revenue, currency, currencyExponent)}. This month you've earned ${formatCompactCurrency(stats.monthRevenue, currency, currencyExponent)}.`;
     }
     if (q.includes('expense') || q.includes('cost')) {
       if (stats.expenseByCategory.length === 0) return 'You have no recorded expenses yet.';
       const sorted = [...stats.expenseByCategory].sort((a, b) => b.value - a.value);
       const top = sorted.slice(0, 3);
-      return `Your total expenses are ${formatCurrency(stats.expenses, currency)}. Your highest spending categories are: ${top.map((e) => `${e.label} (${formatCurrency(e.value, currency)})`).join(', ')}.`;
+      return `Your total expenses are ${formatCurrency(stats.expenses, currency, currencyExponent)}. Your highest spending categories are: ${top.map((e) => `${e.label} (${formatCurrency(e.value, currency, currencyExponent)})`).join(', ')}.`;
     }
     if (q.includes('customer')) {
       return `You have ${customers.length} customers in your contact list.`;
@@ -68,13 +69,13 @@ export default function AIAssistantScreen() {
       const overdue = invoices.filter((i) => i.status !== 'paid' && i.status !== 'void' && new Date(i.due_date) < new Date());
       const totalOverdue = overdue.reduce((sum, i) => sum + Number(i.total - i.paid_amount), 0);
       if (overdue.length === 0) return 'You have no overdue invoices. All your receivables are current.';
-      return `You have ${overdue.length} overdue invoice${overdue.length !== 1 ? 's' : ''} totaling ${formatCurrency(totalOverdue, currency)} in outstanding payments.`;
+      return `You have ${overdue.length} overdue invoice${overdue.length !== 1 ? 's' : ''} totaling ${formatCurrency(totalOverdue, currency, currencyExponent)} in outstanding payments.`;
     }
     if (q.includes('cash')) {
       const cashFlow = stats.revenue - stats.expenses;
-      return `Your net cash position is ${formatCurrency(cashFlow, currency)} based on ${formatCurrency(stats.revenue, currency)} in revenue minus ${formatCurrency(stats.expenses, currency)} in expenses.`;
+      return `Your net cash position is ${formatCurrency(cashFlow, currency, currencyExponent)} based on ${formatCurrency(stats.revenue, currency, currencyExponent)} in revenue minus ${formatCurrency(stats.expenses, currency, currencyExponent)} in expenses.`;
     }
-    return `I can help with questions about your revenue (${formatCurrency(stats.revenue, currency)}), expenses (${formatCurrency(stats.expenses, currency)}), profit (${formatCurrency(stats.profit, currency)}), customers (${customers.length}), products (${products.length}), or invoices. Try asking about any of these topics.`;
+    return `I can help with questions about your revenue (${formatCurrency(stats.revenue, currency, currencyExponent)}), expenses (${formatCurrency(stats.expenses, currency, currencyExponent)}), profit (${formatCurrency(stats.profit, currency, currencyExponent)}), customers (${customers.length}), products (${products.length}), or invoices. Try asking about any of these topics.`;
   };
 
   const sendMessage = async (text: string) => {

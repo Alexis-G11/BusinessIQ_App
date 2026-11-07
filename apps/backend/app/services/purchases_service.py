@@ -16,7 +16,7 @@ from app.models.payments import Payment, PaymentAllocation
 from app.models.product import Product
 from app.models.purchases import Purchase, PurchaseItem
 from app.models.supplier import Supplier
-from app.money import cents_to_decimal
+from app.money import cents_to_decimal, validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
 from app.services.purchases_calc import (
     MAX_CENTS,
@@ -78,6 +78,12 @@ async def create_purchase(
         return existing, False
 
     org = await db.scalar(select(Organization).where(Organization.id == organization_id))
+    try:
+        validate_currency_precision(amount_paid_cents, org.currency_exponent)
+        for item in items:
+            validate_currency_precision(item.unit_cost_cents, org.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     today = datetime.now(ZoneInfo(org.timezone or "UTC")).date()
     purchase_day = purchase_date or today
     if purchase_day > today:
@@ -292,6 +298,10 @@ async def record_supplier_payment(
     if supplier_exists is None:
         raise HTTPException(status_code=404, detail="Supplier not found")
     org = await db.scalar(select(Organization).where(Organization.id == organization_id))
+    try:
+        validate_currency_precision(amount_cents, org.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     today = datetime.now(ZoneInfo(org.timezone or "UTC")).date()
     pay_day = payment_date or today
     if pay_day > today:

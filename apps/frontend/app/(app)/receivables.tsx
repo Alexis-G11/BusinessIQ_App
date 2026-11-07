@@ -16,6 +16,7 @@ export default function ReceivablesScreen() {
   if (loading) return <LoadingState message="Loading receivables..." />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const outstanding = invoices.filter((i) => i.status !== 'paid' && i.status !== 'void');
   const totalOutstanding = outstanding.reduce((sum, i) => sum + (Number(i.total) - Number(i.paid_amount)), 0);
   const overdue = outstanding.filter((i) => new Date(i.due_date) < new Date());
@@ -31,12 +32,12 @@ export default function ReceivablesScreen() {
       <View style={styles.kpiRow}>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Total Outstanding</Text>
-          <Text style={styles.kpiValue}>{formatCurrency(totalOutstanding, currency)}</Text>
+          <Text style={styles.kpiValue}>{formatCurrency(totalOutstanding, currency, currencyExponent)}</Text>
           <Text style={styles.kpiMeta}>{outstanding.length} invoices</Text>
         </Card>
         <Card style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Overdue</Text>
-          <Text style={[styles.kpiValue, { color: colors.danger }]}>{formatCurrency(totalOverdue, currency)}</Text>
+          <Text style={[styles.kpiValue, { color: colors.danger }]}>{formatCurrency(totalOverdue, currency, currencyExponent)}</Text>
           <Text style={styles.kpiMeta}>{overdue.length} invoices overdue</Text>
         </Card>
       </View>
@@ -60,7 +61,7 @@ export default function ReceivablesScreen() {
               <View key={inv.id} style={styles.tableRow}>
                 <Text style={[styles.colCustomer, styles.cell]} numberOfLines={1}>{inv.contact_name}</Text>
                 <Text style={[styles.colDue, styles.cellMeta, isOverdue && { color: colors.danger }]}>{formatDate(inv.due_date, { month: 'short', day: 'numeric' })}</Text>
-                <Text style={[styles.colOutstanding, styles.cellBold]}>{formatCurrency(outstandingAmt, currency)}</Text>
+                <Text style={[styles.colOutstanding, styles.cellBold]}>{formatCurrency(outstandingAmt, currency, currencyExponent)}</Text>
                 <View style={styles.colStatus}>
                   <Badge label={isOverdue ? 'overdue' : inv.status} tone={isOverdue ? 'danger' : 'warning'} />
                 </View>

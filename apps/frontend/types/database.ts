@@ -45,6 +45,7 @@ export interface Business {
   business_type: BusinessType | null;
   country: string | null;
   currency: string;
+  currency_exponent: number;
   timezone: string;
   address: string | null;
   phone: string | null;

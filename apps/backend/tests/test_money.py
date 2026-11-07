@@ -1,7 +1,15 @@
 import unittest
 from decimal import Decimal
 
-from app.money import apply_bps, cents_to_decimal, decimal_to_cents
+from app.money import (
+    apply_bps,
+    cents_to_decimal,
+    currency_exponent,
+    currency_scale,
+    decimal_to_cents,
+    round_to_currency_precision,
+    validate_currency_precision,
+)
 from app.services.sales_calc import SaleError, compute_totals, payment_status
 
 
@@ -17,6 +25,24 @@ class MoneyTests(unittest.TestCase):
     def test_basis_point_tax_rounds_half_up_in_integer_arithmetic(self):
         self.assertEqual(apply_bps(125, 400), 5)
         self.assertEqual(apply_bps(1, 5000), 1)
+
+    def test_currency_precision_matches_configured_zero_and_two_digit_units(self):
+        self.assertEqual(currency_exponent("RWF"), 0)
+        self.assertEqual(currency_exponent("USD"), 2)
+        self.assertEqual(currency_scale(0), 100)
+        validate_currency_precision(1200, 0)
+        with self.assertRaises(ValueError):
+            validate_currency_precision(1201, 0)
+        validate_currency_precision(1201, 2)
+
+    def test_currency_rounding_is_half_up_to_configured_unit(self):
+        self.assertEqual(round_to_currency_precision(149, 0), 100)
+        self.assertEqual(round_to_currency_precision(150, 0), 200)
+
+    def test_zero_decimal_currency_tax_is_rounded_before_total(self):
+        totals = compute_totals([100_000], 0, 800, currency_exponent=0)
+        self.assertEqual(totals.tax_cents, 8_000)
+        self.assertEqual(totals.total_cents, 108_000)
 
     def test_sale_totals_apply_discount_before_tax(self):
         totals = compute_totals([1000, 500], 100, 1000)

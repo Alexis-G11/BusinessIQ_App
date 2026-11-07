@@ -13,6 +13,7 @@ import { Plus, Search, Users, Phone, Mail } from 'lucide-react-native';
 export default function CustomersScreen() {
   const router = useRouter();
   const { currentBusiness } = useBusiness();
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const { data: customers, loading, error } = useContacts('customer');
   const [search, setSearch] = useState('');
 
@@ -83,7 +84,7 @@ export default function CustomersScreen() {
               {Number(customer.opening_balance) > 0 && (
                 <View style={styles.balanceRow}>
                   <Text style={styles.balanceLabel}>Opening balance</Text>
-                  <Text style={styles.balanceValue}>{formatCurrency(Number(customer.opening_balance), currentBusiness?.currency)}</Text>
+                  <Text style={styles.balanceValue}>{formatCurrency(Number(customer.opening_balance), currentBusiness?.currency, currencyExponent)}</Text>
                 </View>
               )}
             </Card>

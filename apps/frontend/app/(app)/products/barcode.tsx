@@ -61,7 +61,7 @@ export default function BarcodeAddScreen() {
         selling_price: Number(form.selling_price),
         reorder_threshold: 0,
         unit: form.unit,
-      }, idempotencyKey.current);
+      }, idempotencyKey.current, currentBusiness.currency_exponent);
       router.replace('/(app)/products');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create product');

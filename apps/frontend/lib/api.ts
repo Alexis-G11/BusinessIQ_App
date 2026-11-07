@@ -45,11 +45,16 @@ export interface AuthSession {
   access_token: string;
 }
 
-export function moneyToCents(value: string | number): number {
+export function moneyToCents(value: string | number, currencyExponent = 2): number {
   const raw = String(value).trim();
   if (!raw) return 0;
-  const match = /^(?:(\d+)(?:\.(\d{0,2}))?|\.(\d{1,2}))$/.exec(raw);
-  if (!match) throw new Error('Enter an amount with no more than two decimal places.');
+  if (!Number.isInteger(currencyExponent) || currencyExponent < 0 || currencyExponent > 2) {
+    throw new Error('This currency precision is not supported.');
+  }
+  const match = currencyExponent === 0
+    ? /^(\d+)$/.exec(raw)
+    : new RegExp(`^(?:(\\d+)(?:\\.(\\d{0,${currencyExponent}}))?|\\.(\\d{1,${currencyExponent}}))$`).exec(raw);
+  if (!match) throw new Error(`Enter an amount with no more than ${currencyExponent} decimal place${currencyExponent === 1 ? '' : 's'}.`);
   const whole = Number(match[1] ?? '0');
   const fractional = Number((match[2] ?? match[3] ?? '').padEnd(2, '0') || '0');
   const cents = whole * 100 + fractional;
@@ -275,6 +280,7 @@ function businessFromOrganization(row: BackendOrganizationMembership, userId: st
       : 'other',
     country: org.country,
     currency: org.currency,
+    currency_exponent: org.currency_exponent,
     timezone: org.timezone,
     address: typeof address === 'string' ? address : null,
     phone: org.phone,
@@ -356,6 +362,7 @@ export const productApi = {
     businessId: string,
     data: Partial<Product>,
     idempotencyKey = createIdempotencyKey(),
+    currencyExponent = 2,
   ): Promise<Product> {
     if (data.stock_quantity) {
       throw new Error('Receive opening stock through a purchase so inventory and accounting stay in sync.');
@@ -372,8 +379,8 @@ export const productApi = {
         unit: data.unit ?? 'piece',
         category_id: data.category_id ?? null,
         supplier_id: null,
-        cost_price_cents: moneyToCents(data.cost_price ?? 0),
-        selling_price_cents: moneyToCents(data.selling_price ?? 0),
+        cost_price_cents: moneyToCents(data.cost_price ?? 0, currencyExponent),
+        selling_price_cents: moneyToCents(data.selling_price ?? 0, currencyExponent),
         reorder_level: data.reorder_threshold ?? 5,
         initial_stock: 0,
       },
@@ -601,11 +608,12 @@ export const expenseApi = {
     businessId: string,
     data: Partial<Omit<Expense, 'amount'>> & { amount?: number | string },
     idempotencyKey = createIdempotencyKey(),
+    currencyExponent = 2,
   ): Promise<Expense> {
     const category = data.category ?? 'other';
     const categoryName = expenseCategoryLabel(category);
     const categoryId = await ensureExpenseCategory(businessId, category, categoryName);
-    const amountCents = moneyToCents(data.amount ?? 0);
+    const amountCents = moneyToCents(data.amount ?? 0, currencyExponent);
     const paymentMethod = data.payment_method === 'bank_transfer' ? 'bank' : data.payment_method ?? 'cash';
     const row = await backendRequest<{
       id: string;

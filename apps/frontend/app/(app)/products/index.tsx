@@ -14,6 +14,7 @@ import { Plus, Search, Package, AlertTriangle } from 'lucide-react-native';
 export default function ProductsScreen() {
   const router = useRouter();
   const { currentBusiness } = useBusiness();
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const { data: products, loading, error, refetch } = useProducts();
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -87,8 +88,8 @@ export default function ProductsScreen() {
                   {product.sku && <Text style={styles.productSku}>SKU: {product.sku}</Text>}
                 </View>
                 <View style={styles.colPrice}>
-                  <Text style={styles.productPrice}>{formatCurrency(Number(product.selling_price), currentBusiness?.currency)}</Text>
-                  <Text style={styles.productCost}>cost: {formatCurrency(Number(product.cost_price), currentBusiness?.currency)}</Text>
+                  <Text style={styles.productPrice}>{formatCurrency(Number(product.selling_price), currentBusiness?.currency, currencyExponent)}</Text>
+                  <Text style={styles.productCost}>cost: {formatCurrency(Number(product.cost_price), currentBusiness?.currency, currencyExponent)}</Text>
                 </View>
                 <View style={styles.colStock}>
                   <Text style={styles.stockValue}>{Number(product.stock_quantity)} {product.unit}</Text>

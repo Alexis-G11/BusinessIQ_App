@@ -25,6 +25,7 @@ export interface BackendMe {
     business_size: string | null;
     country: string | null;
     currency: string;
+    currency_exponent: number;
     timezone: string;
     subscription_status: SubscriptionStatus;
     trial_started_at: string | null;

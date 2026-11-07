@@ -13,6 +13,10 @@ class Organization(Base):
             "trial_ends_at IS NULL OR trial_started_at IS NULL OR trial_ends_at >= trial_started_at",
             name="ck_organizations_trial_window_order",
         ),
+        CheckConstraint(
+            "currency_exponent BETWEEN 0 AND 2",
+            name="ck_organizations_currency_exponent",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
@@ -22,6 +26,7 @@ class Organization(Base):
     industry: Mapped[str] = mapped_column(String, nullable=True)
     country: Mapped[str] = mapped_column(String, nullable=True)
     currency: Mapped[str] = mapped_column(String, default="usd")
+    currency_exponent: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
     timezone: Mapped[str] = mapped_column(String, default="UTC")
     tax_identifier: Mapped[str] = mapped_column(String, nullable=True)
     address: Mapped[dict] = mapped_column(JSONB, nullable=True)

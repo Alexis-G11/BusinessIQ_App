@@ -108,6 +108,7 @@ class OrganizationOut(BaseModel):
     business_size: str | None
     country: str | None
     currency: str
+    currency_exponent: int
     timezone: str
     address: dict | None
     phone: str | None
