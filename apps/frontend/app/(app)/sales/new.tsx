@@ -73,6 +73,22 @@ export default function NewSaleScreen() {
     setCart((prev) => prev.filter((item) => item.productId !== productId));
   };
 
+  const handleBarcodeSubmit = (rawValue: string) => {
+    const code = rawValue.trim();
+    if (!code) return;
+    const match = products.find((product) =>
+      product.is_active && product.barcode?.trim().toLowerCase() === code.toLowerCase()
+    );
+    if (!match) {
+      setSearch(code);
+      setError(`No active product matches barcode ${code}. Check the code or select a search result.`);
+      return;
+    }
+    addToCart(match.id, match.name, Number(match.selling_price));
+    setSearch('');
+    setError(null);
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const currency = currentBusiness?.currency ?? 'USD';
   const currencyExponent = currentBusiness?.currency_exponent ?? 2;
@@ -166,7 +182,17 @@ export default function NewSaleScreen() {
         <View style={styles.productPanel}>
           <View style={styles.searchInputWrap}>
             <Search size={18} color={colors.textSecondary} />
-            <TextInput style={styles.searchInput} placeholder="Search products by name, SKU, or barcode..." value={search} onChangeText={setSearch} placeholderTextColor={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products or scan a barcode..."
+              value={search}
+              onChangeText={setSearch}
+              onSubmitEditing={(event) => handleBarcodeSubmit(event.nativeEvent.text)}
+              returnKeyType="done"
+              blurOnSubmit={false}
+              placeholderTextColor={colors.textSecondary}
+              accessibilityLabel="Search products or scan a USB or Bluetooth HID barcode"
+            />
           </View>
           <ScrollView style={styles.productList} contentContainerStyle={{ gap: spacing.sm }}>
             {filteredProducts.length === 0 ? (

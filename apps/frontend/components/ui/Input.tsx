@@ -18,6 +18,10 @@ interface InputProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   editable?: boolean;
+  autoFocus?: boolean;
+  onSubmitEditing?: (value: string) => void;
+  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
+  blurOnSubmit?: boolean;
 }
 
 export function Input({
@@ -36,6 +40,10 @@ export function Input({
   leftIcon,
   rightIcon,
   editable = true,
+  autoFocus = false,
+  onSubmitEditing,
+  returnKeyType,
+  blurOnSubmit,
 }: InputProps) {
   return (
     <View style={styles.container}>
@@ -58,6 +66,10 @@ export function Input({
           multiline={multiline}
           numberOfLines={numberOfLines}
           editable={editable}
+          autoFocus={autoFocus}
+          onSubmitEditing={(event) => onSubmitEditing?.(event.nativeEvent.text)}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={blurOnSubmit}
         />
         {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
       </View>

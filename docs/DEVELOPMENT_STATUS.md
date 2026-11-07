@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-07
 
-## Latest increment: managed membership lifecycle
+## Increment: managed membership lifecycle
 
 - Added an additive migration for soft-revocable memberships and tenant/time-indexed membership events. A PostgreSQL trigger rejects event updates/deletes. Member access is revoked without deleting the membership or its historical financial attribution; the actor is recorded. Existing organization and authentication lookup paths now ignore revoked memberships. RLS entitlement guards now cover invitation and membership-event rows and the helper checks active membership.
 - Added owner/admin scoped active-member listing, assignment of the existing non-privileged role allowlist, and removal controls in Expo Settings. Owners and the acting administrator cannot be removed through this flow. Role changes, revocations, creation, and invitation-based reinstatements write membership events.
@@ -15,6 +15,12 @@ Last updated: 2026-11-07
 - Added an Expo Team and invitations screen under Settings. Since no email provider is configured, an administrator must share the one-time token manually. No email is sent by the application.
 - Verification: 3 pure invitation service tests pass under host Python 3.9; Python AST parsing passes for 83 backend, migration, and test files; Expo TypeScript reports zero diagnostics across 70 files; `git diff --check` passes. FastAPI/schema/API tests, migration execution, PostgreSQL concurrency behavior, and end-to-end invitation acceptance are **NOT VERIFIED** because this environment has no backend runtime dependencies or database.
 - Remaining membership work includes database-backed verification, ownership transfer policy, historical event backfill policy, and automated delivery only after a mail provider is configured. See FR-BIZ-006/007 in the traceability matrix.
+
+## Latest increment: keyboard-wedge barcode support
+
+- The Expo barcode product-entry screen now has a USB/Bluetooth HID mode. The sales cart accepts the same keyboard-wedge scanner input and adds one exact active-product barcode match per Enter; repeated scans increment quantity. Unknown codes remain in the search field with an error so the operator can recover. Native OS camera scanning and manual entry remain available for product creation.
+- This is a host-keyboard workflow, not a paired device protocol. No hardware has been physically tested. Bluetooth devices must be paired by the operating system and configured to send Enter. Optional ESP32 Wi-Fi integration remains unimplemented and requires its own authenticated device protocol.
+- Verification: Expo TypeScript reports zero diagnostics across 70 files. Physical device, browser, mobile scanner behavior, POS cart interaction and duplicate/unknown barcode handling are **NOT VERIFIED**.
 
 ## Latest increment: Rwanda launch defaults
 

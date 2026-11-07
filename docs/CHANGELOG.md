@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — USB and Bluetooth HID barcode input
+
+- Added keyboard-wedge input to product creation and the sales cart. Standard USB and OS-paired Bluetooth HID readers can enter alphanumeric barcodes and finish a scan with Enter; POS scans add a matching active product and repeated scans increment quantity, without a vendor SDK or network permission.
+- Camera and manual entry remain available. ESP32 Wi-Fi hardware is not implemented; its device identity, authentication, tenant binding, TLS and retry protocol need a separate design.
+- Expo TypeScript validation passed. Physical scanner and POS interaction testing remains outstanding.
+
 ## 2026-11-07 — Managed membership lifecycle
 
 - Added soft-revocation fields to business membership and a tenant-scoped event table for created, role-changed, revoked, and reinstated events. A database trigger makes event rows immutable. Existing memberships remain active by default; no rows are deleted or rewritten by the migration.
