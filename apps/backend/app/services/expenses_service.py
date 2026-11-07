@@ -14,6 +14,7 @@ from app.models.payments import Payment, PaymentAllocation
 from app.models.supplier import Supplier
 from app.money import cents_to_decimal, validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
+from app.services.audit import record_audit_event
 from app.services.expenses_calc import ExpenseError, expense_amounts, expense_ledger_lines
 
 METHOD_ACCOUNT = {"cash": "1000", "bank": "1010", "card": "1010", "mobile_money": "1010", "other": "1010"}
@@ -218,6 +219,16 @@ async def create_expense(
         source_id=expense.id,
         posted_by=user_id,
         commit=False,
+    )
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=user_id,
+        action="expense.created",
+        target_type="expense",
+        target_id=expense.id,
+        details={"amount_cents": amount_cents, "amount_paid_cents": amount_paid_cents},
     )
 
     try:

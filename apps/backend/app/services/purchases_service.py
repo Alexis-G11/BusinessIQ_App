@@ -18,6 +18,7 @@ from app.models.purchases import Purchase, PurchaseItem
 from app.models.supplier import Supplier
 from app.money import cents_to_decimal, validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
+from app.services.audit import record_audit_event
 from app.services.purchases_calc import (
     MAX_CENTS,
     MAX_QUANTITY,
@@ -253,6 +254,16 @@ async def create_purchase(
             commit=False,
         )
 
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=user_id,
+        action="purchase.created",
+        target_type="purchase",
+        target_id=purchase.id,
+        details={"reference": purchase.reference, "total_cents": total_cents, "item_count": len(items)},
+    )
+
     try:
         await db.commit()
     except IntegrityError:
@@ -443,6 +454,16 @@ async def record_supplier_payment(
         source_id=payment.id,
         posted_by=user_id,
         commit=False,
+    )
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=user_id,
+        action="supplier_payment.recorded",
+        target_type="payment",
+        target_id=payment.id,
+        details={"amount_cents": amount_cents, "allocation_count": len(allocations)},
     )
 
     try:

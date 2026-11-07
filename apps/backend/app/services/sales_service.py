@@ -17,6 +17,7 @@ from app.models.product import Product
 from app.models.sales import Sale, SaleItem
 from app.money import validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
+from app.services.audit import record_audit_event
 from app.services.sales_calc import (
     ACCOUNT_CODE,
     MAX_CENTS,
@@ -267,6 +268,21 @@ async def create_sale(
             posted_by=user_id,
             commit=False,
         )
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=user_id,
+        action="sale.created",
+        target_type="sale",
+        target_id=sale.id,
+        details={
+            "reference": reference,
+            "total_cents": totals.total_cents,
+            "payment_status": status,
+            "item_count": len(wanted),
+        },
+    )
 
     # 9. Save everything together, or nothing at all
     try:

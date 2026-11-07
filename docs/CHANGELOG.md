@@ -5,6 +5,7 @@
 - Added owner/admin settings read/update APIs and an Expo Business Profile page for business identity, contacts, timezone, tax identifier and fiscal-year start. Currency and country remain read-only until safe transaction conversion is designed.
 - Added a tenant-scoped audit-event table, RLS entitlement guard, immutable database trigger, `audit.view` API and Business Activity page. The initial event coverage includes business creation, settings updates and invitation/membership lifecycle actions; details store changed field names rather than contact values.
 - Added route/schema and audit feed permission contract tests. Backend runtime and database verification remain outstanding in this environment.
+- Extended same-transaction audit coverage to sales, purchases, expenses, supplier payments, and inventory adjustments. Audit details contain transaction totals/counts and adjustment reason, not customer/supplier contact data or user notes.
 
 ## 2026-11-07 — Currency-aware amount entry and display
 
