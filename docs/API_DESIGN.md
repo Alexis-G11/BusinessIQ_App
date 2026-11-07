@@ -28,4 +28,4 @@ The Expo API layer mixes backend calls with direct Supabase queries to a separat
 
 ## Verification
 
-Add OpenAPI schema snapshots/contract checks, authorization and tenant-negative tests, idempotency tests, pagination limits, and frontend API tests. No live API contract suite currently demonstrates end-to-end parity.
+The income-statement route has a fake-session API contract test for tenant/date/status query scoping, reversed date rejection, and permission denial. It does not prove a live PostgreSQL query. Add OpenAPI snapshots, broader authorization/tenant-negative tests, idempotency tests, pagination limits, database-backed report tests, and frontend API tests. No live API contract suite currently demonstrates end-to-end parity.
