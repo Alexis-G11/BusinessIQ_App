@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.concurrency import run_in_threadpool
@@ -12,13 +12,16 @@ from app.auth import AuthPayload, get_auth_payload
 from app.database import get_db
 from app.models.organization import Organization
 from app.models.role import Role, UserRole
+from app.models.trial_decision import OrganizationTrialDecision
 from app.models.user import OrganizationUser, PhoneTrialClaim, User
 from app.permissions import OrgContext, get_org_context
+from app.subscriptions import trial_expiry
 from app.schemas.auth import (
     MeResponse,
     PhoneVerificationRequest,
     SignUpRequest,
     UpdateUserRequest,
+    UserOut,
 )
 from app.services.accounting.chart_of_accounts_service import seed_default_chart_of_accounts
 from app.supabase_client import supabase_admin
@@ -27,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-TRIAL_DAYS = 7
 SIGNUP_MESSAGE = {"message": "Account created. You can sign in now."}
 
 _USER_ID_FOREIGN_KEYS = text(
@@ -340,20 +342,31 @@ async def complete_phone_verification(
     if phone_claim is None:
         db.add(PhoneTrialClaim(phone_number=payload.phone_number, user_id=user.id))
 
-    organization_ids = (
+    member_organization_ids = (
         await db.execute(
             select(OrganizationUser.organization_id)
             .where(OrganizationUser.user_id == user.id)
             .order_by(OrganizationUser.organization_id)
         )
     ).scalars().all()
-    if not organization_ids:
+    if not member_organization_ids:
         raise HTTPException(status_code=403, detail="Account setup is not complete")
+
+    owner_organization_ids = (
+        await db.execute(
+            select(OrganizationUser.organization_id)
+            .where(
+                OrganizationUser.user_id == user.id,
+                OrganizationUser.is_owner.is_(True),
+            )
+            .order_by(OrganizationUser.organization_id)
+        )
+    ).scalars().all()
 
     organizations = (
         await db.execute(
             select(Organization)
-            .where(Organization.id.in_(organization_ids))
+            .where(Organization.id.in_(owner_organization_ids))
             .order_by(Organization.id)
             .with_for_update()
         )
@@ -362,7 +375,20 @@ async def complete_phone_verification(
     for organization in organizations:
         if organization.subscription_status in {"pending_verification", "trialing"} and organization.trial_ends_at is None:
             organization.subscription_status = "trialing"
-            organization.trial_ends_at = now + timedelta(days=TRIAL_DAYS)
+            organization.trial_started_at = now
+            organization.trial_ends_at = trial_expiry(now)
+            db.add(
+                OrganizationTrialDecision(
+                    organization_id=organization.id,
+                    decided_by_user_id=user.id,
+                    decision="eligible",
+                    decision_reason="verified_phone_owner",
+                    abuse_signals=[],
+                    decided_at=now,
+                    trial_started_at=now,
+                    trial_ends_at=organization.trial_ends_at,
+                )
+            )
 
     try:
         await db.commit()
@@ -383,6 +409,25 @@ async def me(ctx: OrgContext = Depends(get_org_context), db: AsyncSession = Depe
     return {"user": ctx.user, "organization": org, "is_owner": ctx.is_owner}
 
 
+@router.get("/profile", response_model=UserOut)
+async def get_profile(user: User = Depends(get_current_user)):
+    """Return identity data without requiring a selected business context."""
+    return user
+
+
+@router.patch("/profile", response_model=UserOut)
+async def update_profile(
+    payload: UpdateUserRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if "full_name" in payload.model_fields_set and payload.full_name is not None:
+        user.full_name = payload.full_name.strip()
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
 @router.patch("/me", response_model=MeResponse)
 async def update_me(
     payload: UpdateUserRequest,
@@ -391,10 +436,6 @@ async def update_me(
 ):
     if "full_name" in payload.model_fields_set and payload.full_name is not None:
         ctx.user.full_name = payload.full_name.strip()
-    if "phone_number" in payload.model_fields_set:
-        ctx.user.phone_number = payload.phone_number
-        ctx.user.pending_phone_number = None
-
     await db.commit()
     await db.refresh(ctx.user)
     org = await db.get(Organization, ctx.organization_id)

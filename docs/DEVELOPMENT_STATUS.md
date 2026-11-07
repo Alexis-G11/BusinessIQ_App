@@ -16,6 +16,8 @@ Last updated: 2026-11-07
 - Added backend placeholder environment template and declared PyJWT directly.
 - Added six pure unit tests and CI workflow jobs for backend and both frontend apps.
 - Corrected new-account trial lifecycle: signup stays pending until phone verification, the seven-day clock starts after verification, and protected business routes now enforce phone and entitlement status. `/auth/me` remains available to complete the verification flow.
+- Wired multi-business listing, creation, and switching through the backend organization API and the existing Expo picker/onboarding UI. Added a user-profile endpoint independent of business selection and removed unverified phone-number mutation from profile updates.
+- Added an additive migration to persist trial start and per-business eligibility decisions. Existing migrations were not edited or applied.
 
 ## Verification this batch
 
@@ -29,6 +31,7 @@ Last updated: 2026-11-07
 - Expo lockfile security update: bumped compatible nested `shell-quote` to 1.12.0, `ws` 7.x to 7.5.13, and `ws` 8.x to 8.21.0. `npm audit` now reports 0 critical, 9 high, 17 moderate, and 1 low findings across the complete development dependency tree. Remaining issues need separate triage; a clean audit is not claimed.
 - Legacy frontend: typecheck and production build **passed**; Vite updated to 6.4.5 and `npm audit` reports 0 vulnerabilities.
 - Trial change Python syntax compilation and `git diff --check`: **passed**.
+- Multi-business Expo TypeScript check and web export: **passed**. Backend source/migration syntax compilation and **12 pure unit tests passed**.
 - Database migration or live schema: **not checked**; no database connection was made.
 - Supabase, Stripe, SMS/email, AI, storage, cloud, RRA: **not configured or tested**.
 - No secrets were read, printed, or copied.
@@ -42,8 +45,10 @@ Last updated: 2026-11-07
 - Add a supported local bootstrap that does not kill unrelated processes or require production credentials.
 - Decide and implement the currency-aware money representation and safe migration plan before RWF transaction data is introduced.
 - Add database-backed tests for signup, phone verification/trial claims, protected-route denial and cross-tenant access. The entitlement predicate's unit tests do not prove route integration or migration/RLS behavior.
+- Apply migration `c92fa24d7e10` only after isolated PostgreSQL upgrade/backfill/RLS tests; test organization creation, owner-role seeding, chart initialization, list/switch, and tenant-denial end to end.
+- Implement fiscal-year selection and configurable chart templates; add creation idempotency and multi-signal trial-abuse controls before production.
 - Replace signup's email-confirmation bypass with an email-verification flow; evaluate recovery and rate limits in the same auth lifecycle.
-- No migration has been created or applied in this batch.
+- Migration `c92fa24d7e10` was created but not applied in this batch.
 
 ## Next milestone
 

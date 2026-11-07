@@ -12,14 +12,14 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-AUTH-006 | No MFA implementation found | NOT IMPLEMENTED | MFA policy and privileged-role tests |
 | FR-AUTH-007 | Backend resolves owner/role permissions; client role claims are not authority | PRESENT—UNVERIFIED | Role-escalation tests |
 | FR-AUTH-008 | No rate-limit middleware found | NOT IMPLEMENTED | Rate-limit and abuse tests |
-| FR-BIZ-001 | Signup creates one organization; create route absent | PARTIAL | Additional business creation and ownership tests |
-| FR-BIZ-002 | Organization has selected profile fields | PARTIAL | Required contacts, country/currency/timezone/fiscal configuration |
-| FR-BIZ-003 | Signup seeds owner membership, role, and chart of accounts | PARTIAL | Configurable setup and atomicity tests |
-| FR-BIZ-004 | Backend lists authorized organizations | PARTIAL | Frontend uses `/auth/me` only; switch tests |
+| FR-BIZ-001 | `POST /organizations` creates an additional organization for a verified user | PARTIAL | API/database transaction, duplicate retry, and ownership tests |
+| FR-BIZ-002 | Organization creation accepts business type, industry, country code, currency, timezone, address, contacts, and fiscal-year date | PARTIAL | Frontend does not yet collect fiscal-year start; test validation and update lifecycle |
+| FR-BIZ-003 | Creation seeds an owner membership, owner role, chart of accounts, trial decision, and independent trial | PARTIAL | Isolated database atomicity test; chart template remains fixed, not configurable |
+| FR-BIZ-004 | `GET /organizations` returns only the user's memberships; Expo picker persists a selected ID and API requests validate it | PARTIAL | Two-business switch and altered-header negative tests |
 | FR-BIZ-005 | API organization context checks membership | PRESENT—UNVERIFIED | Every route and altered-ID negative tests |
 | FR-BIZ-006 | No invitation or team-management backend routes | NOT IMPLEMENTED | Invite lifecycle and permission tests |
 | FR-BIZ-007 | No membership removal/lifecycle workflow | NOT IMPLEMENTED | Attribution retention and revocation tests |
-| FR-BILL-001–005 | Signup creates pending-verification organizations; confirmed phone starts a seven-day trial; API permission dependencies enforce verified phone and active/trial status | PARTIAL | Add API integration tests for signup, one-time phone eligibility, expiry and recovery; email confirmation remains a gap |
+| FR-BILL-001–005 | Phone verification and additional-business creation start server-timed seven-day trials; `organization_trial_decisions` records decision, reason, times, and observed signal list | PARTIAL | Migration/API integration tests; denial decisions, multi-signal abuse detection, recovery policy, and email confirmation remain gaps |
 | FR-BILL-006–013 | Organization subscription placeholders; frontend status stub; no checkout/webhooks | NOT IMPLEMENTED | Per-business subscription model, signed durable events, reconciliation and tests |
 | FR-OPS-001–004 | Product/category APIs and inventory movement/adjustment APIs | PARTIAL | Archive/search/bulk/transfer/opening-balance breadth and invariants |
 | FR-OPS-005–008 | Purchase and supplier services update stock/accounting | PARTIAL | Orders, partial receipt, bulk imports, concurrency and override audit |

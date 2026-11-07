@@ -24,3 +24,11 @@
 - Backend business permission dependencies require phone verification and an active subscription or unexpired trial. The owner role does not bypass subscription entitlement.
 - Updated signup copy to describe phone verification and the trial accurately.
 - Added five deterministic entitlement tests. The complete pure backend suite passes (11 tests); API/database integration and email verification remain outstanding.
+
+## 2026-11-07 — Multi-business workflow increment
+
+- Added authenticated organization creation and membership listing; creation seeds the owner role, default chart of accounts, an independent seven-day trial, and a per-business trial decision record.
+- Added additive migration `c92fa24d7e10` for trial start/decision persistence with an existing-trial backfill; no migration was applied.
+- Connected the existing Expo business picker and onboarding form to these organization APIs, and added identity profile endpoints that work without a selected business.
+- Removed direct profile phone mutation so a user cannot replace their verified phone without a verification flow.
+- Frontend typecheck and web export passed; 12 pure backend unit tests passed. The database migration and backend route transactions still require isolated PostgreSQL integration tests; trial-abuse detection and fiscal-year selection are incomplete.

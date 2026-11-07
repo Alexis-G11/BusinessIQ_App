@@ -1,6 +1,12 @@
 from datetime import datetime, timedelta, timezone
 
-from app.subscriptions import has_feature_access
+from app.subscriptions import TRIAL_DAYS, has_feature_access, trial_expiry
+
+
+def test_trial_expiry_is_seven_days_after_start():
+    started_at = datetime(2026, 11, 7, 12, 30)
+    assert trial_expiry(started_at) == datetime(2026, 11, 14, 12, 30)
+    assert TRIAL_DAYS == 7
 
 
 def test_phone_verification_is_required_even_for_active_subscription():

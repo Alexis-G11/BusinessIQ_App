@@ -1,4 +1,11 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+
+TRIAL_DAYS = 7
+
+
+def trial_expiry(started_at: datetime) -> datetime:
+    """Calculate the seven-day trial end while preserving the input timezone form."""
+    return started_at + timedelta(days=TRIAL_DAYS)
 
 
 def has_feature_access(

@@ -14,6 +14,8 @@ FastAPI routes are versioned under `/api/v1` for auth, organizations, products, 
 - Version contracts and generate or validate TypeScript types from OpenAPI as coverage is added.
 - Record correlation IDs and material audit events without sensitive payloads.
 
+`GET /api/v1/auth/profile` and `PATCH /api/v1/auth/profile` operate on the authenticated identity without selecting a business. `GET /api/v1/organizations` lists only the current user's memberships. `POST /api/v1/organizations` creates a workspace for a phone-verified user, seeds its owner access and default chart, and starts a server-timed seven-day trial. Expo selection is local UI state; every business API request still sends `X-Organization-Id`, which the backend validates against membership.
+
 ## Target domains
 
 `/auth`, `/organizations`, `/memberships`, `/billing`, `/products`, `/inventory`, `/purchases`, `/sales`, `/customers`, `/suppliers`, `/expenses`, `/payments`, `/accounting`, `/tax`, `/reports`, `/analytics`, `/forecasts`, `/assistant`, `/files`, `/audit`, `/exports`, and `/devices`.

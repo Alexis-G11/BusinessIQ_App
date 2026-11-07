@@ -9,7 +9,7 @@ interface InputProps {
   placeholder?: string;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-  autoCapitalize?: 'none' | 'sentences' | 'words';
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   error?: string;
   hint?: string;
   style?: TextStyle;

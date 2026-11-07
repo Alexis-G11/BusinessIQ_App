@@ -16,7 +16,7 @@ This is a baseline engineering audit, not an independent penetration test or a p
 
 ## Gaps and risks to address in later steps
 
-- Signup creates one organization. There are no organization-list/create, membership invitation, or membership administration routes; membership lifecycle/status fields are not implemented.
+- `GET /organizations` and phone-verified `POST /organizations` now list and create business workspaces; create initializes owner membership, role, chart, and a per-business trial decision. Invitation/removal/transfer workflows and membership lifecycle/status fields remain unimplemented.
 - Subscription fields remain on `organizations`; Stripe currently has a client/key foundation but no checkout or verified webhook routes. The authentication increment below starts a seven-day trial after phone verification and enforces trial entitlement on API business routes.
 - MFA, login/signup rate limits, session revocation, and audit logging remain unimplemented. Email password recovery is provided by Supabase Auth in the frontend; delivery configuration has not been verified.
 - Existing BusinessIQ user rows whose Supabase Auth identities are missing can no longer be mistaken for successful account creation: signup starts Auth registration for these records, and a confirmed session can relink the Auth ID while preserving organization and role foreign keys. Full confirmation-email delivery and sign-in round-trip testing remain pending.

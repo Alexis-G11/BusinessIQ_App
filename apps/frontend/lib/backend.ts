@@ -27,9 +27,27 @@ export interface BackendMe {
     currency: string;
     timezone: string;
     subscription_status: SubscriptionStatus;
+    trial_started_at: string | null;
     trial_ends_at: string | null;
     created_at: string;
+    updated_at: string;
   };
+}
+
+export interface BackendOrganizationMembership {
+  organization: BackendMe['organization'] & {
+    legal_name: string | null;
+    business_type: string | null;
+    address: Record<string, unknown> | null;
+    phone: string | null;
+    email: string | null;
+    tax_identifier: string | null;
+    fiscal_year_start: string | null;
+  };
+  membership_id: string;
+  user_id: string;
+  is_owner: boolean;
+  role: string | null;
 }
 
 export interface SignUpPayload {
@@ -107,10 +125,38 @@ export const backendAuthApi = {
       body: { phone_number },
     });
   },
-  me(): Promise<BackendMe> {
-    return backendRequest('/auth/me');
+  meForOrganization(organizationId: string): Promise<BackendMe> {
+    return backendRequest('/auth/me', { organizationId });
   },
-  updateMe(payload: { full_name?: string; phone_number?: string | null }): Promise<BackendMe> {
-    return backendRequest('/auth/me', { method: 'PATCH', body: payload });
+  profile(): Promise<BackendMe['user']> {
+    return backendRequest('/auth/profile');
+  },
+  updateProfile(payload: { full_name?: string }): Promise<BackendMe['user']> {
+    return backendRequest('/auth/profile', { method: 'PATCH', body: payload });
+  },
+};
+
+export interface BackendOrganizationCreate {
+  name: string;
+  legal_name?: string | null;
+  business_type?: string | null;
+  industry?: string | null;
+  business_size?: string | null;
+  country?: string | null;
+  currency: string;
+  timezone: string;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  tax_identifier?: string | null;
+  fiscal_year_start?: string | null;
+}
+
+export const backendOrganizationApi = {
+  list(): Promise<BackendOrganizationMembership[]> {
+    return backendRequest('/organizations');
+  },
+  create(payload: BackendOrganizationCreate): Promise<BackendOrganizationMembership> {
+    return backendRequest('/organizations', { method: 'POST', body: payload });
   },
 };

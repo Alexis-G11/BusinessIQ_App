@@ -69,14 +69,16 @@ class SignUpRequest(BaseModel):
 
 class UpdateUserRequest(BaseModel):
     full_name: str | None = Field(default=None, min_length=2, max_length=120)
-    phone_number: str | None = Field(default=None, max_length=32)
 
     @field_validator("full_name")
     @classmethod
     def validate_full_name(cls, value: str | None) -> str | None:
-        if value is not None and not value.strip():
-            raise ValueError("full_name cannot be blank")
-        return value.strip() if value is not None else None
+        if value is None:
+            return None
+        normalized = value.strip()
+        if len(normalized) < 2:
+            raise ValueError("full_name must contain at least two characters")
+        return normalized
 
 
 class PhoneVerificationRequest(BaseModel):
@@ -96,14 +98,23 @@ class OrganizationOut(BaseModel):
 
     id: uuid.UUID
     name: str
+    legal_name: str | None
+    business_type: str | None
     industry: str | None
     business_size: str | None
     country: str | None
     currency: str
     timezone: str
+    address: dict | None
+    phone: str | None
+    email: str | None
+    tax_identifier: str | None
+    fiscal_year_start: date | None
     subscription_status: str
+    trial_started_at: datetime | None
     trial_ends_at: datetime | None
     created_at: datetime
+    updated_at: datetime
 
 
 class UserOut(BaseModel):

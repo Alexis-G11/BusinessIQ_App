@@ -6,7 +6,13 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import { backendAuthApi, backendRequest, createIdempotencyKey } from '@/lib/backend';
+import {
+  backendAuthApi,
+  backendOrganizationApi,
+  backendRequest,
+  createIdempotencyKey,
+  type BackendOrganizationMembership,
+} from '@/lib/backend';
 import type {
   Profile,
   Business,
@@ -179,7 +185,7 @@ export const authApi = {
 
 export const profileApi = {
   async get(userId: string): Promise<Profile | null> {
-    const { user } = await backendAuthApi.me();
+    const user = await backendAuthApi.profile();
     if (user.id !== userId) throw new Error('Authenticated user does not match the requested profile.');
     return {
       id: user.id,
@@ -193,15 +199,14 @@ export const profileApi = {
   },
 
   async update(userId: string, updates: Partial<Pick<Profile, 'full_name' | 'phone' | 'phone_verified'>>): Promise<void> {
-    const profile = await backendAuthApi.me();
-    if (profile.user.id !== userId) throw new Error('Authenticated user does not match the requested profile.');
-    if (Object.hasOwn(updates, 'phone_verified')) {
-      throw new Error('Phone verification cannot be changed from profile settings.');
+    const profile = await backendAuthApi.profile();
+    if (profile.id !== userId) throw new Error('Authenticated user does not match the requested profile.');
+    if (Object.hasOwn(updates, 'phone_verified') || Object.hasOwn(updates, 'phone')) {
+      throw new Error('Phone changes require the phone verification workflow.');
     }
-    const payload: { full_name?: string; phone_number?: string | null } = {};
+    const payload: { full_name?: string } = {};
     if (Object.hasOwn(updates, 'full_name')) payload.full_name = updates.full_name ?? undefined;
-    if (Object.hasOwn(updates, 'phone')) payload.phone_number = updates.phone;
-    await backendAuthApi.updateMe(payload);
+    await backendAuthApi.updateProfile(payload);
   },
 };
 
@@ -211,52 +216,98 @@ export const profileApi = {
 
 export const businessApi = {
   async listForUser(userId: string): Promise<{ businesses: Business[]; memberships: Membership[] }> {
-    const response = await backendAuthApi.me();
-    if (response.user.id !== userId) throw new Error('Authenticated user does not match the requested businesses.');
-    const org = response.organization;
-    const status = org.subscription_status === 'trialing' || org.subscription_status === 'active'
-      || org.subscription_status === 'pending_verification'
-      || org.subscription_status === 'past_due' || org.subscription_status === 'canceled'
-      || org.subscription_status === 'expired' ? org.subscription_status : 'expired';
-    const business: Business = {
-      id: org.id,
-      owner_id: response.is_owner ? userId : '',
-      name: org.name,
-      legal_name: null,
-      industry: org.industry,
-      business_type: 'other',
-      country: org.country,
-      currency: org.currency,
-      timezone: org.timezone,
-      address: null,
-      phone: null,
-      email: null,
-      tax_id: null,
-      fiscal_year_start: null,
-      logo_url: null,
-      subscription_plan: null,
-      subscription_status: status,
-      trial_ends_at: org.trial_ends_at,
-      created_at: org.created_at,
-      updated_at: org.created_at,
+    const rows = await backendOrganizationApi.list();
+    if (rows.some((row) => row.user_id !== userId)) {
+      throw new Error('Authenticated user does not match the requested businesses.');
+    }
+    return {
+      businesses: rows.map((row) => businessFromOrganization(row, userId)),
+      memberships: rows.map((row) => membershipFromOrganization(row)),
     };
-    const membership: Membership = {
-      id: `owner:${org.id}:${userId}`,
-      business_id: org.id,
-      user_id: userId,
-      role: response.is_owner ? 'owner' : 'staff',
-      invited_email: null,
-      status: 'active',
-      created_at: org.created_at,
-      updated_at: org.created_at,
-    };
-    return { businesses: [business], memberships: [membership] };
   },
 
-  async create(_userId: string, _data: Partial<Business>): Promise<Business> {
-    throw new Error('Creating additional businesses is not available in the BusinessIQ API yet.');
+  async create(userId: string, data: Partial<Business>): Promise<Business> {
+    const name = data.name?.trim();
+    if (!name) throw new Error('A business name is required.');
+    const created = await backendOrganizationApi.create({
+      name,
+      legal_name: data.legal_name,
+      business_type: data.business_type,
+      industry: data.industry,
+      country: data.country?.trim() || undefined,
+      currency: data.currency ?? 'USD',
+      timezone: data.timezone ?? 'UTC',
+      address: data.address?.trim() || undefined,
+      phone: data.phone?.trim() || undefined,
+      email: data.email?.trim() || undefined,
+      tax_identifier: data.tax_id?.trim() || undefined,
+    });
+    if (created.user_id !== userId) throw new Error('Business creation returned an unexpected owner.');
+    return businessFromOrganization(created, userId);
   },
 };
+
+function businessFromOrganization(row: BackendOrganizationMembership, userId: string): Business {
+  const org = row.organization;
+  const knownStatuses: SubscriptionStatus[] = [
+    'trialing', 'active', 'pending_verification', 'past_due', 'canceled', 'expired',
+  ];
+  const status = knownStatuses.includes(org.subscription_status)
+    ? org.subscription_status
+    : 'expired';
+  const knownBusinessTypes: BusinessType[] = [
+    'sole_proprietor', 'llc', 'corporation', 'partnership', 'other',
+  ];
+  const address = org.address?.formatted;
+
+  return {
+    id: org.id,
+    owner_id: row.is_owner ? userId : '',
+    name: org.name,
+    legal_name: org.legal_name,
+    industry: org.industry,
+    business_type: knownBusinessTypes.includes(org.business_type as BusinessType)
+      ? org.business_type as BusinessType
+      : 'other',
+    country: org.country,
+    currency: org.currency,
+    timezone: org.timezone,
+    address: typeof address === 'string' ? address : null,
+    phone: org.phone,
+    email: org.email,
+    tax_id: org.tax_identifier,
+    fiscal_year_start: org.fiscal_year_start,
+    logo_url: null,
+    subscription_plan: null,
+    subscription_status: status,
+    trial_started_at: org.trial_started_at,
+    trial_ends_at: org.trial_ends_at,
+    created_at: org.created_at,
+    updated_at: org.updated_at,
+  };
+}
+
+function membershipFromOrganization(row: BackendOrganizationMembership): Membership {
+  const roles: Record<string, BusinessRole> = {
+    owner: 'owner',
+    admin: 'admin',
+    manager: 'manager',
+    accountant: 'accountant',
+    analyst: 'viewer',
+    employee: 'staff',
+    inventory_staff: 'staff',
+  };
+  return {
+    id: row.membership_id,
+    business_id: row.organization.id,
+    user_id: row.user_id,
+    role: roles[row.role ?? ''] ?? 'staff',
+    invited_email: null,
+    status: 'active',
+    created_at: row.organization.created_at,
+    updated_at: row.organization.updated_at,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Generic table helpers (used by hooks)
@@ -382,7 +433,7 @@ export const subscriptionApi = {
     isTrialActive: boolean;
     hasAccess: boolean;
   }> {
-    const { organization } = await backendAuthApi.me();
+    const { organization } = await backendAuthApi.meForOrganization(businessId);
     if (organization.id !== businessId) throw new Error('Requested business does not match the active BusinessIQ organization.');
 
     const status = organization.subscription_status;

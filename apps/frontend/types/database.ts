@@ -54,6 +54,7 @@ export interface Business {
   logo_url: string | null;
   subscription_plan: SubscriptionPlan | null;
   subscription_status: SubscriptionStatus;
+  trial_started_at: string | null;
   trial_ends_at: string | null;
   created_at: string;
   updated_at: string;
