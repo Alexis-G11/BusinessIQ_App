@@ -2,6 +2,13 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: business member invitations
+
+- Added an additive `organization_invitations` model/migration and tenant-scoped endpoints to create, list, revoke, and accept seven-day invitations. Only an SHA-256 token digest is stored; the raw high-entropy token is returned once. Invitation acceptance requires the signed-in account email to match and the account phone to be verified. Owner/admin roles cannot be granted through this flow.
+- Added an Expo Team and invitations screen under Settings. Since no email provider is configured, an administrator must share the one-time token manually. No email is sent by the application.
+- Verification: 3 pure invitation service tests pass under host Python 3.9; Python AST parsing passes for 83 backend, migration, and test files; Expo TypeScript reports zero diagnostics across 70 files; `git diff --check` passes. FastAPI/schema/API tests, migration execution, PostgreSQL concurrency behavior, and end-to-end invitation acceptance are **NOT VERIFIED** because this environment has no backend runtime dependencies or database.
+- Remaining membership lifecycle work includes active member listing, role changes, removal with rejoin-safe audit history, ownership transfer policy, and automated delivery only after a mail provider is configured. See FR-BIZ-006/007 in the traceability matrix.
+
 ## Latest increment: Rwanda launch defaults
 
 - Signup and additional-business schemas, ORM defaults, frontend signup payload, and onboarding form now consistently default new businesses to RW/RWF/Africa-Kigali. Existing organization rows and financial records are not changed; explicit supported locale selections remain available.
@@ -46,6 +53,7 @@ Last updated: 2026-11-07
 - Added six pure unit tests and CI workflow jobs for backend and both frontend apps.
 - Corrected new-account trial lifecycle: signup stays pending until phone verification, the seven-day clock starts after verification, and protected business routes now enforce phone and entitlement status. `/auth/me` remains available to complete the verification flow.
 - Wired multi-business listing, creation, and switching through the backend organization API and the existing Expo picker/onboarding UI. Added a user-profile endpoint independent of business selection and removed unverified phone-number mutation from profile updates.
+- Added the invitation lifecycle API and Expo manual-token workflow; database-backed authorization, tenant-isolation, expiry, replay and acceptance evidence remains outstanding.
 - Added an additive migration to persist trial start and per-business eligibility decisions. Existing migrations were not edited or applied.
 - Replaced administrative email auto-confirmation with Supabase public signup, the configured confirmation callback, generic confirmation resend, and a fail-closed check when signup returns an authenticated session. Updated the Expo signup flow and auth setup instructions.
 - Added an independent confirmed-email check to `/auth/complete-signup` before account linking/setup and corrected the missing `date` import referenced by `OrganizationOut.fiscal_year_start`.

@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Business member invitations
+
+- Added an additive invitation table and tenant-scoped create/list/revoke/accept endpoints. Invitation tokens are high entropy, expire after seven days, are bound to the invited email, and are stored only as SHA-256 digests. Acceptance requires a phone-verified authenticated account.
+- Added an Expo Team and invitations screen. The token is displayed once for manual sharing; automated delivery is unavailable because no email provider is configured.
+- Added pure token, expiry, and role-allowlist tests. Runtime API/database verification and full member lifecycle management remain outstanding; see `DEVELOPMENT_STATUS.md` and `REQUIREMENTS_TRACEABILITY.md`.
+
 ## 2026-11-07 — Rwanda launch defaults
 
 - Signup and additional-business onboarding now default new organizations to RW, RWF, and `Africa/Kigali`, matching the approved initial launch configuration. Explicit supported locales remain selectable for additional businesses.
