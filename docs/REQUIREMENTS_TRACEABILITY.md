@@ -4,8 +4,8 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 
 | SRS IDs | Existing implementation evidence | Status | Required evidence or gap |
 |---|---|---|---|
-| FR-AUTH-001 | Signup request and backend user creation | PARTIAL | Email verification is bypassed by confirmed-user creation; flow tests |
-| FR-AUTH-002 | Supabase Auth email is administratively marked confirmed during signup | NOT IMPLEMENTED | Replace confirmation bypass with verified email flow and protected-access gate |
+| FR-AUTH-001 | Signup request, backend user/organization transaction, and generic email-confirmation resend | PARTIAL | Confirmed-email callback, phone verification and new-account transaction integration tests; rate limits |
+| FR-AUTH-002 | Supabase public signup requests an email confirmation to the configured callback and rejects a returned session (auto-confirm misconfiguration) | PARTIAL | Verify Supabase project confirmation setting, redirect allowlist/template, and full signup/callback/access flow in integration tests |
 | FR-AUTH-003 | Supabase phone OTP and completion endpoint | PARTIAL | SMS setup and expiry/replay/rate-limit tests |
 | FR-AUTH-004 | `app/auth.py` validates token signature, issuer, audience, and expiry | PRESENT—UNVERIFIED | JWT negative-path integration tests |
 | FR-AUTH-005 | Supabase recovery UI and sign-out; backend token validation | PARTIAL | Session revocation, recovery and account lifecycle tests |
@@ -19,12 +19,12 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-BIZ-005 | API organization context checks membership | PRESENT—UNVERIFIED | Every route and altered-ID negative tests |
 | FR-BIZ-006 | No invitation or team-management backend routes | NOT IMPLEMENTED | Invite lifecycle and permission tests |
 | FR-BIZ-007 | No membership removal/lifecycle workflow | NOT IMPLEMENTED | Attribution retention and revocation tests |
-| FR-BILL-001–005 | Phone verification and additional-business creation start server-timed seven-day trials; `organization_trial_decisions` records decision, reason, times, and observed signal list | PARTIAL | Migration/API integration tests; denial decisions, multi-signal abuse detection, recovery policy, and email confirmation remain gaps |
+| FR-BILL-001–005 | Phone verification and additional-business creation start server-timed seven-day trials; `organization_trial_decisions` records decision, reason, times, and observed signal list | PARTIAL | Migration/API integration tests; denial decisions, multi-signal abuse detection, recovery policy and verified signup integration remain gaps |
 | FR-BILL-006–013 | Organization subscription placeholders; frontend status stub; no checkout/webhooks | NOT IMPLEMENTED | Per-business subscription model, signed durable events, reconciliation and tests |
 | FR-OPS-001–004 | Product/category APIs and inventory movement/adjustment APIs | PARTIAL | Archive/search/bulk/transfer/opening-balance breadth and invariants |
 | FR-OPS-005–008 | Purchase and supplier services update stock/accounting | PARTIAL | Orders, partial receipt, bulk imports, concurrency and override audit |
 | FR-OPS-009–015 | Sales quote/create/list and payment recording; no invoice/return/refund/reversal suite | PARTIAL | POS, discounts/tax, partial payments, refunds, voids and idempotency coverage |
-| FR-FIN-001 | Expense API/service exists; Expo creation still writes a separate Supabase table | PARTIAL | One authoritative API flow, attachments, validation and tests |
+| FR-FIN-001 | Expo expense listing and creation use organization-scoped FastAPI routes; creation maps to categories/accounts and posts the backend expense/payment/journal transaction. Notes are stored through an additive migration; pure expense-ledger calculation tests cover paid/partial/unpaid arithmetic. | PARTIAL | Execute unit tests; add isolated migration/API/accounting tests, attachments, category lifecycle, currency-aware minor units, and end-to-end validation |
 | FR-FIN-002–003 | Sales/purchases balances support receivables/payables; invoice/bill lifecycle absent | PARTIAL | Invoice/bill records, aging, due dates, partial settlement |
 | FR-FIN-004–006 | Payment models and services allocate to selected source types | PARTIAL | Invoice allocation, currency/tenant/over-allocation constraints and accounting trace |
 | FR-FIN-007 | Customer/supplier APIs exist | PARTIAL | Transaction history/search parity and tests |

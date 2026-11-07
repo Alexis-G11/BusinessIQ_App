@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -65,6 +65,10 @@ class SignUpRequest(BaseModel):
         except (ZoneInfoNotFoundError, ValueError, OSError):
             raise ValueError("Unknown timezone")
         return v
+
+
+class ResendConfirmationRequest(BaseModel):
+    email: EmailStr
 
 
 class UpdateUserRequest(BaseModel):

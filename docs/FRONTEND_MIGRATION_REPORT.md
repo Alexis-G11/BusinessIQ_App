@@ -43,7 +43,7 @@ The Bolt application uses Expo Router and includes `app/`, `components/`, `conte
 | Inventory | `/api/v1/inventory/summary`, `/movements`, `/adjustments` | Not integrated |
 | Sales | `/api/v1/sales` | Not integrated |
 | Purchases / payables | `/api/v1/purchases`, `/api/v1/payables`, `/api/v1/payments/supplier` | Not integrated |
-| Expenses | `/api/v1/expenses`, `/api/v1/expense-categories`, `/api/v1/expense-accounts`, `/api/v1/expenses/summary` | Not integrated |
+| Expenses | `/api/v1/expenses`, `/api/v1/expense-categories`, `/api/v1/expense-accounts`, `/api/v1/expenses/summary` | Expo list/create now use tenant-scoped backend API; runtime behavior and DB migration remain unverified |
 | Customer payments / receivables | `/api/v1/payments/customer`, `/api/v1/payments`, `/api/v1/receivables` | Not integrated |
 | Accounting and reports | Accounting services exist; corresponding financial-statement route set was not found | Not integrated / endpoint gap |
 | Billing, team, analytics, AI, help, invoices | No corresponding routers were found in the baseline router inventory | Not implemented in current backend inventory |

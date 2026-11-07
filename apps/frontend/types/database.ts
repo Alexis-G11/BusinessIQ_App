@@ -145,9 +145,10 @@ export interface Expense {
   id: string;
   business_id: string;
   category: ExpenseCategory;
+  category_name?: string;
   description: string;
   amount: number;
-  payment_method: PaymentMethod;
+  payment_method: PaymentMethod | null;
   expense_date: string;
   supplier_id: string | null;
   recurring: boolean;

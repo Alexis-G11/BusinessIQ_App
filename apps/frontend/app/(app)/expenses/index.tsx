@@ -77,7 +77,7 @@ export default function ExpensesScreen() {
               <View style={styles.expenseInfo}>
                 <Text style={styles.expenseDesc} numberOfLines={1}>{expense.description}</Text>
                 <View style={styles.expenseMeta}>
-                  <Badge label={CATEGORY_LABELS[expense.category] ?? expense.category} tone="neutral" />
+                  <Badge label={expense.category_name ?? CATEGORY_LABELS[expense.category] ?? expense.category} tone="neutral" />
                   <Text style={styles.expenseDate}>{formatDate(expense.expense_date)}</Text>
                   {expense.recurring && <Badge label="Recurring" tone="info" />}
                 </View>

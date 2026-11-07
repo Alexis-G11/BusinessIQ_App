@@ -15,9 +15,9 @@ This document records the approved project direction and the implementation base
 
 ## Current repository shape
 
-The backend contains models and APIs for organizations, products, inventory, customers, suppliers, sales, purchases, expenses, and payments. Accounting services exist, but report and accounting-management APIs are incomplete. The Expo app has broader UI coverage than backend integration: selected transaction flows use FastAPI while expenses, invoices, payments, membership management, and generic table access still reference a separate Supabase `business_id` schema. That separate schema must not become a second business-data source.
+The backend contains models and APIs for organizations, products, inventory, customers, suppliers, sales, purchases, expenses, and payments. Accounting services exist, but report and accounting-management APIs are incomplete. Expo expenses, sales, purchases, products, and organization context have source-level FastAPI integrations. Invoices, payments, membership management, and some generic table access still reference a separate Supabase `business_id` schema; that separate schema must not become a second business-data source.
 
-The backend migration graph has one source head, `b7e9c2a15f30`, across 14 revisions. The live database revision and applied schema are unknown; no database was queried for this baseline.
+The backend migration graph has one source head, `a84d6c21f903`, across 16 source revisions. The live database revision and applied schema are unknown; no database was queried for this baseline. The latest additive revision adds nullable expense notes; neither it nor earlier unapplied revisions have been tested against PostgreSQL in this workspace.
 
 ## Target request flow
 

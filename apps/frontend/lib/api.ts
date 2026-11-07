@@ -128,6 +128,10 @@ export const authApi = {
     });
   },
 
+  async resendConfirmation(email: string): Promise<void> {
+    await backendAuthApi.resendConfirmation(email);
+  },
+
   async sendPhoneVerification(phone: string): Promise<void> {
     const { error } = await supabase.auth.updateUser({ phone });
     if (error) throw error;
@@ -561,24 +565,161 @@ export const contactApi = {
 // ---------------------------------------------------------------------------
 
 export const expenseApi = {
-  async create(businessId: string, userId: string, data: Partial<Expense>): Promise<Expense> {
-    const { data: expense, error } = await supabase.from('expenses').insert({
+  async list(businessId: string): Promise<Expense[]> {
+    const rows = await backendRequest<Array<{
+      id: string;
+      category_name: string;
+      description: string;
+      amount_cents: number;
+      amount_paid_cents: number;
+      payment_method: 'cash' | 'bank' | 'card' | 'mobile_money' | 'other' | null;
+      incurred_at: string;
+      supplier_id: string | null;
+      notes: string | null;
+      created_by: string | null;
+      created_at: string;
+    }>>('/expenses?limit=100', { organizationId: businessId });
+    return rows.map((row) => ({
+      id: row.id,
       business_id: businessId,
-      category: data.category ?? 'other',
-      description: data.description ?? '',
-      amount: data.amount ?? 0,
-      payment_method: data.payment_method ?? 'cash',
-      expense_date: data.expense_date ?? new Date().toISOString().split('T')[0],
-      supplier_id: null,
+      category: expenseCategoryValue(row.category_name),
+      category_name: row.category_name,
+      description: row.description,
+      amount: row.amount_cents / 100,
+      payment_method: row.payment_method === 'bank' ? 'bank_transfer' : row.payment_method,
+      expense_date: row.incurred_at,
+      supplier_id: row.supplier_id,
       recurring: false,
       recurring_interval: 'none',
-      notes: data.notes ?? null,
-      created_by: userId,
-    }).select().single();
-    if (error) throw error;
-    return expense as Expense;
+      notes: row.notes,
+      created_by: row.created_by ?? '',
+      created_at: row.created_at,
+    }));
+  },
+
+  async create(
+    businessId: string,
+    data: Partial<Omit<Expense, 'amount'>> & { amount?: number | string },
+    idempotencyKey = createIdempotencyKey(),
+  ): Promise<Expense> {
+    const category = data.category ?? 'other';
+    const categoryName = expenseCategoryLabel(category);
+    const categoryId = await ensureExpenseCategory(businessId, category, categoryName);
+    const amountCents = moneyToCents(data.amount ?? 0);
+    const paymentMethod = data.payment_method === 'bank_transfer' ? 'bank' : data.payment_method ?? 'cash';
+    const row = await backendRequest<{
+      id: string;
+      category_name: string;
+      description: string;
+      amount_cents: number;
+      amount_paid_cents: number;
+      payment_method: 'cash' | 'bank' | 'card' | 'mobile_money' | 'other' | null;
+      incurred_at: string;
+      supplier_id: string | null;
+      notes: string | null;
+      created_by: string | null;
+      created_at: string;
+    }>('/expenses', {
+      method: 'POST',
+      organizationId: businessId,
+      idempotencyKey,
+      body: {
+        category_id: categoryId,
+        amount_cents: amountCents,
+        amount_paid_cents: amountCents,
+        payment_method: paymentMethod,
+        incurred_at: data.expense_date ?? new Date().toISOString().slice(0, 10),
+        supplier_id: null,
+        description: data.description ?? '',
+        notes: data.notes ?? null,
+      },
+    });
+    return {
+      id: row.id,
+      business_id: businessId,
+      category,
+      category_name: row.category_name,
+      description: row.description,
+      amount: row.amount_cents / 100,
+      payment_method: row.payment_method === 'bank' ? 'bank_transfer' : row.payment_method,
+      expense_date: row.incurred_at,
+      supplier_id: row.supplier_id,
+      recurring: false,
+      recurring_interval: 'none',
+      notes: row.notes,
+      created_by: row.created_by ?? '',
+      created_at: row.created_at,
+    };
   },
 };
+
+function expenseCategoryLabel(category: ExpenseCategory): string {
+  const labels: Record<ExpenseCategory, string> = {
+    rent: 'Rent',
+    utilities: 'Utilities',
+    salaries: 'Salaries',
+    supplies: 'Supplies',
+    marketing: 'Marketing',
+    transport: 'Transport',
+    maintenance: 'Maintenance',
+    professional_fees: 'Professional Fees',
+    insurance: 'Insurance',
+    taxes: 'Taxes',
+    other: 'Other',
+  };
+  return labels[category];
+}
+
+function expenseCategoryValue(categoryName: string): ExpenseCategory {
+  const normalized = categoryName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const values: ExpenseCategory[] = [
+    'rent', 'utilities', 'salaries', 'supplies', 'marketing', 'transport',
+    'maintenance', 'professional_fees', 'insurance', 'taxes', 'other',
+  ];
+  return values.includes(normalized as ExpenseCategory) ? normalized as ExpenseCategory : 'other';
+}
+
+async function ensureExpenseCategory(
+  businessId: string,
+  category: ExpenseCategory,
+  name: string,
+): Promise<string> {
+  type ExpenseCategoryRow = { id: string; name: string; account_id: string };
+  const listCategories = () => backendRequest<ExpenseCategoryRow[]>('/expense-categories', {
+    organizationId: businessId,
+  });
+  let categories = await listCategories();
+  const existing = categories.find((item) => item.name.trim().toLowerCase() === name.toLowerCase());
+  if (existing) return existing.id;
+
+  const accounts = await backendRequest<Array<{ id: string; account_code: string; name: string }>>(
+    '/expense-accounts', { organizationId: businessId },
+  );
+  const accountCodes: Record<ExpenseCategory, string> = {
+    rent: '6000', utilities: '6200', salaries: '6100', supplies: '6300',
+    marketing: '6900', transport: '6900', maintenance: '6900', professional_fees: '6900',
+    insurance: '6900', taxes: '6900', other: '6900',
+  };
+  const account = accounts.find((item) => item.account_code === accountCodes[category])
+    ?? accounts.find((item) => item.account_code === '6900')
+    ?? accounts[0];
+  if (!account) throw new Error('No active expense account is configured for this business.');
+
+  try {
+    const created = await backendRequest<ExpenseCategoryRow>('/expense-categories', {
+      method: 'POST',
+      organizationId: businessId,
+      body: { name, account_id: account.id },
+    });
+    return created.id;
+  } catch (error) {
+    // Another request may have created the same category concurrently.
+    categories = await listCategories();
+    const concurrent = categories.find((item) => item.name.trim().toLowerCase() === name.toLowerCase());
+    if (concurrent) return concurrent.id;
+    throw error;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Sales API

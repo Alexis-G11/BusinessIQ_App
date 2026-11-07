@@ -26,7 +26,7 @@ These controls are source observations and remain unverified in an integrated en
 ## Gaps and risks
 
 - No rate limiting, MFA, general audit log, file controls, support-access workflow, or complete membership lifecycle.
-- Signup now creates organizations in `pending_verification`; the trial starts after Supabase phone verification. Signup still administratively confirms email, so the required email-verification gate remains missing.
+- Signup requests Supabase email confirmation and rejects an unexpected authenticated signup session; `/auth/complete-signup` independently checks Supabase's confirmed-email timestamp before linking or returning a BusinessIQ account. New organizations remain `pending_verification` until phone verification. Email delivery, project confirmation settings, callback allow-list/template and protected-route behavior still need integration verification.
 - Additional business creation records a per-business trial decision and requires a verified owner. Multi-signal trial-abuse detection is not implemented; the initial decision currently records an empty observed-signal list.
 - Trial and phone enforcement have pure unit tests but lack API/database integration tests; the existing data migration and RLS behavior have not been exercised against an isolated database in this workspace.
 - Direct Expo business-table requests bypass the intended API boundary.

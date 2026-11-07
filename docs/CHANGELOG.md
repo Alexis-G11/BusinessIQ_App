@@ -32,3 +32,11 @@
 - Connected the existing Expo business picker and onboarding form to these organization APIs, and added identity profile endpoints that work without a selected business.
 - Removed direct profile phone mutation so a user cannot replace their verified phone without a verification flow.
 - Frontend typecheck and web export passed; 12 pure backend unit tests passed. The database migration and backend route transactions still require isolated PostgreSQL integration tests; trial-abuse detection and fiscal-year selection are incomplete.
+
+## 2026-11-07 — Email verification and expense API integration
+
+- Replaced the Supabase administrative email-confirmation bypass with public signup and confirmation/resend requests to the configured callback. The backend rejects a signup that unexpectedly returns a session and independently verifies the confirmed-email timestamp during account setup.
+- Connected Expo expense listing/creation to the organization-scoped FastAPI endpoints, mapped expense categories and payment methods, preserved notes, and supplied idempotency keys.
+- Added additive migration `a84d6c21f903` for nullable backend expense notes; source graph has one head. The migration and expense/accounting flow remain untested against PostgreSQL/Supabase.
+- Corrected the backend CI working directory so the test runner can resolve the `app` package, and added pure coverage for expense journal arithmetic and payment validation.
+- Expo TypeScript compiler check passed with zero diagnostics; Python AST and migration graph checks passed. Backend tests and runtime authentication/expense checks were unavailable in this host environment.

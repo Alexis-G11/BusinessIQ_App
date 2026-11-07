@@ -17,7 +17,7 @@ Statuses describe verified integration with the existing FastAPI/PostgreSQL back
 | Sales / POS | Vite sales list | Bolt sale and item writes direct to separate schema | Atomic `POST/GET /api/v1/sales` | NOT INTEGRATED; financial totals must be server-computed | NOT TESTED |
 | Purchases | Vite purchase list | Bolt purchases UI/direct tables | `/api/v1/purchases` | NOT INTEGRATED | NOT TESTED |
 | Suppliers | Not exposed as a full Vite management flow | Bolt contacts-based supplier screens | `/api/v1/suppliers` | NOT INTEGRATED; separate entity mapping required | NOT TESTED |
-| Expenses | Vite list; summary dashboard card | Bolt expense create/list direct to Supabase | `/api/v1/expenses`, `/expense-categories`, `/expense-accounts` | NOT INTEGRATED | NOT TESTED |
+| Expenses | Vite list; summary dashboard card | Bolt expense create/list now call organization-scoped backend APIs | `/api/v1/expenses`, `/expense-categories`, `/expense-accounts` | INTEGRATED IN SOURCE; no runtime/API test yet | TypeScript check; DB/API behavior NOT TESTED |
 | Customers | Not exposed as a full Vite management flow | Bolt contacts-based customer screens | `/api/v1/customers` | NOT INTEGRATED; separate entity mapping required | NOT TESTED |
 | Payments | No complete Vite payment workflow | Bolt payment tables/screens | `/api/v1/payments`, customer/supplier payment endpoints | NOT INTEGRATED | NOT TESTED |
 | Invoices | NOT IMPLEMENTED in current Vite app | Bolt invoice screens and separate SQL schema | No invoice router found | BLOCKED: backend endpoint/service not found | NOT TESTED |

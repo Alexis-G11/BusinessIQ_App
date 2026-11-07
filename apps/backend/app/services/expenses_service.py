@@ -84,6 +84,7 @@ async def create_expense(
     supplier_id: uuid.UUID | None,
     description: str,
     idempotency_key: str,
+    notes: str | None = None,
 ) -> tuple[Expense, bool]:
     existing = await db.scalar(
         select(Expense).where(
@@ -144,6 +145,7 @@ async def create_expense(
         amount_paid_cents=amount_paid_cents,
         idempotency_key=idempotency_key,
         description=description,
+        notes=notes,
         incurred_at=incurred_at,
         created_by=user_id,
     )

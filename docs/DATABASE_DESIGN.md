@@ -4,9 +4,11 @@
 
 PostgreSQL is the target single source of truth for business and financial data. Existing SQLAlchemy models center on `organizations`; membership/role tables associate users to organizations; operational entities include products, inventory transactions, sales, purchases, expenses, customers, suppliers, payments, and payment allocations; accounting entities include accounts, journal entries, and journal lines.
 
-Alembic contains 15 source revisions with source head `c92fa24d7e10`. The current database revision, extensions, indexes, grants, RLS state, and data quality are unknown because no database inspection was performed. Preserve every existing migration; use additive, reviewed migrations for changes.
+Alembic contains 16 source revisions with source head `a84d6c21f903`. The current database revision, extensions, indexes, grants, RLS state, and data quality are unknown because no database inspection was performed. Preserve every existing migration; use additive, reviewed migrations for changes.
 
 The current development increment adds `organizations.trial_started_at` and an `organization_trial_decisions` row per business. The decision stores its actor, decision/reason, start/expiry times, and observed abuse-signal list. RLS is enabled with no authenticated-user policy; the API service role is the only application writer. Migration `c92fa24d7e10` backfills start time as seven days before the recorded end for existing trialing organizations. It is authored but not applied or tested against PostgreSQL in this workspace.
+
+Migration `a84d6c21f903` adds nullable notes to backend expenses so the Expo expense form can preserve notes through the tenant-scoped API. This additive migration is source-reviewed only; it has not been applied or exercised against an isolated database.
 
 ## Existing integrity mechanisms
 

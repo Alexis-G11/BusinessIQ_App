@@ -116,6 +116,9 @@ export const backendAuthApi = {
   signUp(payload: SignUpPayload): Promise<{ message: string }> {
     return backendRequest('/auth/signup', { method: 'POST', body: payload });
   },
+  resendConfirmation(email: string): Promise<{ message: string }> {
+    return backendRequest('/auth/resend-confirmation', { method: 'POST', body: { email } });
+  },
   completeSignup(): Promise<{ ready: boolean; phone_number: string | null }> {
     return backendRequest('/auth/complete-signup', { method: 'POST' });
   },

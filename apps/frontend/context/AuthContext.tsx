@@ -13,6 +13,7 @@ interface AuthState {
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string, fullName: string, businessName: string, phone: string) => Promise<void>;
+  resendConfirmation: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'phone' | 'phone_verified'>>) => Promise<void>;
@@ -141,6 +142,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await authApi.signUp(email, password, fullName, businessName, phone);
   }, []);
 
+  const resendConfirmation = useCallback(async (email: string) => {
+    await authApi.resendConfirmation(email);
+  }, []);
+
   const signOut = useCallback(async () => {
     await authApi.signOut();
     setState({
@@ -159,7 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.session?.user, refreshProfile]);
 
   return (
-    <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, refreshProfile, updateProfile }}>
+    <AuthContext.Provider value={{ ...state, signIn, signUp, resendConfirmation, signOut, refreshProfile, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

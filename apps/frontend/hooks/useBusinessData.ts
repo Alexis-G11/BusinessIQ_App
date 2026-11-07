@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { contactApi, inventoryApi, listTable, productApi, purchaseApi, saleApi } from '@/lib/api';
+import { contactApi, expenseApi, inventoryApi, listTable, productApi, purchaseApi, saleApi } from '@/lib/api';
 import { useBusiness } from '@/context/BusinessContext';
 import type { Sale, Expense, Product, Contact, Invoice, Payment, Purchase } from '@/types';
 import type { InventorySummary } from '@/lib/api';
@@ -77,7 +77,7 @@ export function useSales() {
 }
 
 export function useExpenses() {
-  return useBusinessData<Expense>('expenses', 'expense_date', false, 100);
+  return useBackendBusinessData<Expense>(expenseApi.list);
 }
 
 export function useProducts() {

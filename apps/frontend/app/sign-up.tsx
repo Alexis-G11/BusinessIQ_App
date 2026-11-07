@@ -16,7 +16,7 @@ import { colors, spacing, fontSizes, fontWeights } from '@/theme';
 
 export default function SignUpScreen() {
   const router = useRouter();
-  const { signUp } = useAuth();
+  const { signUp, resendConfirmation } = useAuth();
   const [fullName, setFullName] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,6 +27,8 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [signupComplete, setSignupComplete] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const handleSignUp = async () => {
     setError(null);
@@ -100,14 +102,29 @@ export default function SignUpScreen() {
             <Text style={styles.title}>{signupComplete ? 'Account created' : 'Create your account'}</Text>
             <Text style={styles.subtitle}>
               {signupComplete
-                ? 'Your account is created. Sign in and verify your phone to start your 7-day trial.'
-                : 'Create your account. Verify your phone after sign-in to start your 7-day trial.'}
+                ? `Check ${email.trim()} for a confirmation link. Confirm your email, then sign in to verify your phone and start your 7-day trial.`
+                : 'Create your account. Confirm your email, then verify your phone after sign-in to start your 7-day trial.'}
             </Text>
 
             {error && <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
 
             {signupComplete ? (
-              <Button label="Go to sign in" onPress={() => router.replace('/sign-in')} fullWidth size="lg" />
+              <>
+                {resendMessage && <Text style={styles.resendMessage}>{resendMessage}</Text>}
+                <Button label={resending ? 'Sending…' : 'Resend confirmation email'} disabled={resending} onPress={async () => {
+                  setResending(true);
+                  setResendMessage(null);
+                  try {
+                    await resendConfirmation(email.trim());
+                    setResendMessage('If the account is awaiting confirmation, a fresh email has been requested.');
+                  } catch {
+                    setResendMessage('Could not request another email right now. Please try again shortly.');
+                  } finally {
+                    setResending(false);
+                  }
+                }} fullWidth size="lg" />
+                <Button label="Go to sign in" onPress={() => router.replace('/sign-in')} fullWidth size="lg" />
+              </>
             ) : (
               <>
             <Input
@@ -234,6 +251,7 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: fontSizes.sm,
   } as any,
+  resendMessage: { color: colors.textSecondary, fontSize: fontSizes.sm, marginBottom: spacing.sm, textAlign: 'center' } as any,
   termsRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

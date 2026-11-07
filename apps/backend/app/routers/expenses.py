@@ -47,6 +47,7 @@ class ExpenseIn(BaseModel):
     incurred_at: date
     supplier_id: uuid.UUID | None = None
     description: str = Field(min_length=1, max_length=1000)
+    notes: str | None = Field(default=None, max_length=4000)
 
 
 class ExpenseOut(BaseModel):
@@ -62,6 +63,7 @@ class ExpenseOut(BaseModel):
     payment_method: str | None
     incurred_at: date
     description: str
+    notes: str | None
     created_by: uuid.UUID | None
     created_at: datetime
 
@@ -142,6 +144,7 @@ async def _expense_out(
         payment_method=payment_method,
         incurred_at=expense.incurred_at,
         description=expense.description,
+        notes=expense.notes,
         created_by=expense.created_by,
         created_at=expense.created_at,
     )
@@ -233,6 +236,7 @@ async def add_expense(
         incurred_at=body.incurred_at,
         supplier_id=body.supplier_id,
         description=body.description.strip(),
+        notes=body.notes.strip() if body.notes and body.notes.strip() else None,
         idempotency_key=idempotency_key,
     )
     if not created:

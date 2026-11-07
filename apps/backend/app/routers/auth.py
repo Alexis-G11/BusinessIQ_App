@@ -19,18 +19,21 @@ from app.subscriptions import trial_expiry
 from app.schemas.auth import (
     MeResponse,
     PhoneVerificationRequest,
+    ResendConfirmationRequest,
     SignUpRequest,
     UpdateUserRequest,
     UserOut,
 )
 from app.services.accounting.chart_of_accounts_service import seed_default_chart_of_accounts
 from app.supabase_client import supabase_admin
+from app.config import settings
+from supabase import create_client
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-SIGNUP_MESSAGE = {"message": "Account created. You can sign in now."}
+SIGNUP_MESSAGE = {"message": "If this account can be created, a confirmation email will be sent. Confirm your email before signing in."}
 
 _USER_ID_FOREIGN_KEYS = text(
     """
@@ -79,16 +82,38 @@ def _find_supabase_user_by_email(email: str):
         page += 1
 
 
-def _create_confirmed_supabase_user(email: str, password: str, full_name: str, phone_number: str):
-    return supabase_admin.auth.admin.create_user(
+def _create_supabase_user(payload: SignUpRequest, email: str):
+    # A fresh public client avoids retaining a sign-up session in a process-wide
+    # client if the Supabase project is misconfigured to auto-confirm emails.
+    public_auth = create_client(settings.supabase_url, settings.supabase_anon_key).auth
+    return public_auth.sign_up(
         {
             "email": email,
-            "password": password,
-            "email_confirm": True,
-            "user_metadata": {
-                "full_name": full_name,
-                "phone_number": phone_number,
+            "password": payload.password,
+            "options": {
+                "email_redirect_to": settings.auth_email_redirect_url,
+                "data": {
+                    "full_name": payload.full_name.strip(),
+                    "phone_number": payload.phone_number,
+                    "business_name": payload.business_name.strip(),
+                    "industry": payload.industry,
+                    "business_size": payload.business_size,
+                    "country": payload.country,
+                    "currency": payload.currency,
+                    "timezone": payload.timezone,
+                },
             },
+        }
+    )
+
+
+def _resend_signup_confirmation(email: str):
+    public_auth = create_client(settings.supabase_url, settings.supabase_anon_key).auth
+    return public_auth.resend(
+        {
+            "type": "signup",
+            "email": email,
+            "options": {"email_redirect_to": settings.auth_email_redirect_url},
         }
     )
 
@@ -138,28 +163,26 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
     existing_user = await db.scalar(
         select(User).where(func.lower(User.email) == email).with_for_update()
     )
+    try:
+        existing_auth_user = await run_in_threadpool(_find_supabase_user_by_email, email)
+    except Exception as exc:
+        logger.warning("Could not check Supabase Auth during sign-up: %s", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="Sign-up is temporarily unavailable")
+
+    if existing_auth_user is not None:
+        if existing_auth_user.email_confirmed_at is None:
+            try:
+                await run_in_threadpool(_resend_signup_confirmation, email)
+            except Exception as exc:
+                logger.warning("Confirmation resend failed: %s", type(exc).__name__)
+        return SIGNUP_MESSAGE
+
     if existing_user is not None:
         try:
-            existing_auth_user = await run_in_threadpool(_find_supabase_user_by_email, email)
-        except Exception as exc:
-            logger.warning("Could not check Supabase Auth during account recovery: %s", type(exc).__name__)
-            raise HTTPException(status_code=503, detail="Sign-up is temporarily unavailable")
-
-        if existing_auth_user is not None:
-            if existing_auth_user.email_confirmed_at is not None:
-                return SIGNUP_MESSAGE
-            raise HTTPException(
-                status_code=409,
-                detail="An account already exists for this email. Sign in or reset its password.",
-            )
-
-        try:
             result = await run_in_threadpool(
-                _create_confirmed_supabase_user,
+                _create_supabase_user,
+                payload,
                 email,
-                payload.password,
-                payload.full_name.strip(),
-                payload.phone_number,
             )
         except Exception as exc:
             logger.warning("Supabase user creation failed: %s", type(exc).__name__)
@@ -168,16 +191,21 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
             )
         if result.user is None:
             raise HTTPException(status_code=400, detail="Could not create the account.")
+        if result.session is not None or result.user.email_confirmed_at is not None:
+            if result.session is not None:
+                try:
+                    await run_in_threadpool(supabase_admin.auth.admin.delete_user, str(result.user.id))
+                except Exception:
+                    logger.exception("Could not remove a signup created while email confirmation was disabled")
+            raise HTTPException(status_code=503, detail="Email confirmation must be enabled for account creation")
         return SIGNUP_MESSAGE
 
-    # 2. Create a confirmed login so email delivery is not required during testing.
+    # Signup must not issue an authenticated session until Supabase confirms email.
     try:
         result = await run_in_threadpool(
-            _create_confirmed_supabase_user,
+            _create_supabase_user,
+            payload,
             email,
-            payload.password,
-            payload.full_name.strip(),
-            payload.phone_number,
         )
     except Exception as exc:
         logger.warning("Supabase user creation failed: %s", type(exc).__name__)
@@ -188,6 +216,13 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
     supa_user = result.user
     if supa_user is None:
         raise HTTPException(status_code=400, detail="Could not create the account.")
+    if result.session is not None or supa_user.email_confirmed_at is not None:
+        if result.session is not None:
+            try:
+                await run_in_threadpool(supabase_admin.auth.admin.delete_user, str(supa_user.id))
+            except Exception:
+                logger.exception("Could not remove a signup created while email confirmation was disabled")
+        raise HTTPException(status_code=503, detail="Email confirmation must be enabled for account creation")
     supabase_user_id = uuid.UUID(supa_user.id)
 
     # 3. Create everything on our side in ONE transaction.
@@ -215,7 +250,7 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
         db.add(UserRole(user_id=user.id, organization_id=org.id, role_id=owner_role.id))
         await db.flush()
 
-        # This function calls commit(), which saves everything above in one go.
+        # One transaction seeds the new tenant's chart along with its owner and trial.
         await seed_default_chart_of_accounts(db, org.id)
     except Exception:
         await db.rollback()
@@ -226,6 +261,19 @@ async def signup(payload: SignUpRequest, db: AsyncSession = Depends(get_db)):
             logger.exception("Could not remove orphan Supabase user %s", supabase_user_id)
         raise HTTPException(status_code=500, detail="Could not complete sign-up. Please try again.")
 
+    return SIGNUP_MESSAGE
+
+
+@router.post("/resend-confirmation")
+async def resend_confirmation(payload: ResendConfirmationRequest):
+    email = str(payload.email).lower()
+    try:
+        user = await run_in_threadpool(_find_supabase_user_by_email, email)
+        if user is not None and user.email_confirmed_at is None:
+            await run_in_threadpool(_resend_signup_confirmation, email)
+    except Exception as exc:
+        # Keep the response generic to avoid leaking whether an address has an account.
+        logger.warning("Confirmation resend request failed: %s", type(exc).__name__)
     return SIGNUP_MESSAGE
 
 
@@ -244,7 +292,11 @@ async def complete_signup(
         raise HTTPException(status_code=503, detail="Account setup is temporarily unavailable")
 
     auth_user = auth_response.user
-    if auth_user is None or not auth_user.email:
+    if (
+        auth_user is None
+        or not auth_user.email
+        or auth_user.email_confirmed_at is None
+    ):
         raise HTTPException(status_code=403, detail="Account setup is not complete")
     if payload.email and payload.email.lower() != auth_user.email.lower():
         raise HTTPException(status_code=403, detail="Account setup is not complete")
