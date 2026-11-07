@@ -13,7 +13,7 @@ Status vocabulary: **PRESENT—UNVERIFIED** means relevant source exists without
 | FR-AUTH-007 | Backend resolves owner/role permissions; client role claims are not authority | PRESENT—UNVERIFIED | Role-escalation tests |
 | FR-AUTH-008 | No rate-limit middleware found | NOT IMPLEMENTED | Rate-limit and abuse tests |
 | FR-BIZ-001 | `POST /organizations` creates an additional organization for a verified user | PARTIAL | API/database transaction, duplicate retry, and ownership tests |
-| FR-BIZ-002 | Organization creation accepts business type, industry, country code, currency, timezone, address, contacts, and fiscal-year date | PARTIAL | Frontend does not yet collect fiscal-year start; test validation and update lifecycle |
+| FR-BIZ-002 | Organization creation accepts business type, industry, country code, currency, timezone, address, contacts, and fiscal-year date; signup and additional-business setup now default to RW/RWF/Africa-Kigali while allowing supported locale choices | PARTIAL | Frontend does not yet collect fiscal-year start; test validation and settings-update lifecycle |
 | FR-BIZ-003 | Creation seeds an owner membership, owner role, chart of accounts, trial decision, and independent trial | PARTIAL | Isolated database atomicity test; chart template remains fixed, not configurable |
 | FR-BIZ-004 | `GET /organizations` returns only the user's memberships; Expo picker persists a selected ID and API requests validate it | PARTIAL | Two-business switch and altered-header negative tests |
 | FR-BIZ-005 | API organization context checks membership | PRESENT—UNVERIFIED | Every route and altered-ID negative tests |

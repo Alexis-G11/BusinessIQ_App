@@ -2,6 +2,12 @@
 
 Last updated: 2026-11-07
 
+## Latest increment: Rwanda launch defaults
+
+- Signup and additional-business schemas, ORM defaults, frontend signup payload, and onboarding form now consistently default new businesses to RW/RWF/Africa-Kigali. Existing organization rows and financial records are not changed; explicit supported locale selections remain available.
+- Added schema tests for both default paths and explicit override behavior. These require the backend runtime dependencies and need CI execution on this host.
+- Verification: Expo TypeScript reports zero diagnostics, and Python AST parsing passes. This host's Python 3.9 has no Pydantic runtime and cannot execute the schema test; the repository CI installs backend requirements under Python 3.12.
+
 ## Latest increment: journal-backed balance sheet
 
 - Added an organization-scoped `reports.view` API for balance-sheet balances through an as-of date. Current earnings through that date are included in equity until fiscal period closing is implemented. The response identifies currency, accrual basis, source, and whether assets equal liabilities plus equity; it returns the difference without forcing a correction.

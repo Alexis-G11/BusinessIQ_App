@@ -16,6 +16,8 @@ FastAPI routes are versioned under `/api/v1` for auth, organizations, products, 
 
 `GET /api/v1/auth/profile` and `PATCH /api/v1/auth/profile` operate on the authenticated identity without selecting a business. `GET /api/v1/organizations` lists only the current user's memberships. `POST /api/v1/organizations` creates a workspace for a phone-verified user, seeds its owner access and default chart, and starts a server-timed seven-day trial. Expo selection is local UI state; every business API request still sends `X-Organization-Id`, which the backend validates against membership.
 
+Signup and additional-organization creation default new businesses to country `RW`, currency `RWF`, and timezone `Africa/Kigali`. Additional organizations may explicitly select another supported locale. These defaults do not assign jurisdictional tax rates.
+
 `GET /api/v1/reports/income-statement?from=YYYY-MM-DD&to=YYYY-MM-DD` requires `reports.view`, resolves the selected organization through membership, and returns totals aggregated from posted journal lines only. The response states the date range, organization currency, accrual basis, and `posted_journal_entries` provenance. `GET /api/v1/reports/balance-sheet?as_of=YYYY-MM-DD` returns cumulative posted balances through the business-local date, includes current earnings in equity, and exposes the accounting-equation difference. It does not yet provide a classified cash-flow statement.
 
 ## Target domains

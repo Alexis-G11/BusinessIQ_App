@@ -24,10 +24,10 @@ class Organization(Base):
     legal_name: Mapped[str] = mapped_column(String, nullable=True)
     business_type: Mapped[str] = mapped_column(String, nullable=True)  # sole_proprietor|llc|corporation|partnership|other
     industry: Mapped[str] = mapped_column(String, nullable=True)
-    country: Mapped[str] = mapped_column(String, nullable=True)
-    currency: Mapped[str] = mapped_column(String, default="usd")
+    country: Mapped[str] = mapped_column(String, default="RW", nullable=True)
+    currency: Mapped[str] = mapped_column(String, default="rwf")
     currency_exponent: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
-    timezone: Mapped[str] = mapped_column(String, default="UTC")
+    timezone: Mapped[str] = mapped_column(String, default="Africa/Kigali")
     tax_identifier: Mapped[str] = mapped_column(String, nullable=True)
     address: Mapped[dict] = mapped_column(JSONB, nullable=True)
     phone: Mapped[str] = mapped_column(String, nullable=True)

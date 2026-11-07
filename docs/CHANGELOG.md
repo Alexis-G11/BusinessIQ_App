@@ -1,5 +1,11 @@
 # BusinessIQ Changelog
 
+## 2026-11-07 — Rwanda launch defaults
+
+- Signup and additional-business onboarding now default new organizations to RW, RWF, and `Africa/Kigali`, matching the approved initial launch configuration. Explicit supported locales remain selectable for additional businesses.
+- Existing organizations are unchanged. No migration or historical data rewrite was needed.
+- Added schema-default tests for signup, additional-business creation, and explicit locale overrides.
+
 ## 2026-11-07 — Journal-backed balance sheet
 
 - Added `GET /api/v1/reports/balance-sheet?as_of=...`, protected by `reports.view` and organization membership. It derives balances from posted journals, includes current earnings in equity, and returns the accounting-equation difference and balance flag.

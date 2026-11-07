@@ -57,6 +57,9 @@ export interface SignUpPayload {
   email: string;
   password: string;
   business_name: string;
+  country: string;
+  currency: string;
+  timezone: string;
 }
 
 export class BackendError extends Error {

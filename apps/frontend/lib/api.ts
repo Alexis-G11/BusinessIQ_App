@@ -130,6 +130,9 @@ export const authApi = {
       full_name: fullName,
       business_name: businessName,
       phone_number: phone,
+      country: 'RW',
+      currency: 'RWF',
+      timezone: 'Africa/Kigali',
     });
   },
 
@@ -244,8 +247,8 @@ export const businessApi = {
       business_type: data.business_type,
       industry: data.industry,
       country: data.country?.trim() || undefined,
-      currency: data.currency ?? 'USD',
-      timezone: data.timezone ?? 'UTC',
+      currency: data.currency ?? 'RWF',
+      timezone: data.timezone ?? 'Africa/Kigali',
       address: data.address?.trim() || undefined,
       phone: data.phone?.trim() || undefined,
       email: data.email?.trim() || undefined,

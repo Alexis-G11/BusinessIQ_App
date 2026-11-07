@@ -21,9 +21,9 @@ class OrganizationCreate(BaseModel):
     business_type: Literal["sole_proprietor", "llc", "corporation", "partnership", "other"] | None = None
     industry: str | None = Field(default=None, max_length=60)
     business_size: Literal["micro", "small", "medium"] | None = None
-    country: str | None = Field(default=None, min_length=2, max_length=2)
-    currency: str = "USD"
-    timezone: str = "UTC"
+    country: str | None = Field(default="RW", min_length=2, max_length=2)
+    currency: str = "RWF"
+    timezone: str = "Africa/Kigali"
     address: str | None = Field(default=None, max_length=500)
     phone: str | None = Field(default=None, max_length=32)
     email: EmailStr | None = None

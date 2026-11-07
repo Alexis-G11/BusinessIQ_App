@@ -15,6 +15,7 @@ Before changing stored amounts, design a migration that preserves old values and
 
 ## Consequences and open work
 
+- New signup and additional-business defaults now use RW, RWF, and `Africa/Kigali`; explicit supported country, currency, and timezone choices remain available for additional businesses. These defaults do not embed Rwanda tax rules in shared calculations.
 - New organizations now persist a `currency_exponent` derived from their selected supported currency. RWF, UGX, XAF, and XOF are configured as zero-decimal currencies; the currently supported two-decimal currencies use exponent 2.
 - Additive migration `5ec2a4b9d710` assigns exponent 2 to every existing organization. This preserves historical amount meaning and does not reinterpret posted rows when a legacy organization uses RWF.
 - Operational integer amount columns remain encoded as hundredths of the major unit for compatibility. New writes for zero-decimal organizations must be multiples of 100, and tax rounds half-up to configured precision. This is an enforcement bridge, not completion of the SRS money model.
