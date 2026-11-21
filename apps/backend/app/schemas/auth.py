@@ -20,7 +20,7 @@ class SignUpRequest(BaseModel):
     industry: str | None = Field(default=None, max_length=60)
     business_size: Literal["micro", "small", "medium"] | None = None
     country: str | None = Field(default="RW", min_length=2, max_length=2)
-    currency: str = "RWF"
+    currency: str = "rwf"
     timezone: str = "Africa/Kigali"
 
     @field_validator("phone_number")

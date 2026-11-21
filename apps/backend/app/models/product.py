@@ -12,9 +12,6 @@ class ProductCategory(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID, primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id"))
     name: Mapped[str] = mapped_column(String, nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=True)
-    idempotency_key: Mapped[str] = mapped_column(String, nullable=True)
-    idempotency_request_hash: Mapped[str] = mapped_column(String(64), nullable=True)
     parent_category_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("product_categories.id"), nullable=True)
 
 
@@ -29,6 +26,9 @@ class Product(Base):
     category_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("product_categories.id"), nullable=True)
     supplier_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("suppliers.id"), nullable=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    idempotency_key: Mapped[str | None] = mapped_column(String, nullable=True)
+    idempotency_request_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     sku: Mapped[str] = mapped_column(String, nullable=True)
     barcode: Mapped[str] = mapped_column(String, nullable=True)
     unit: Mapped[str] = mapped_column(String, nullable=True)

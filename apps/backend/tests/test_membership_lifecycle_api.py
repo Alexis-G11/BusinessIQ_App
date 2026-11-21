@@ -104,7 +104,7 @@ def test_role_change_is_scoped_and_records_the_previous_and_new_role():
         revoked_at=None,
         created_at=datetime(2026, 1, 1),
     )
-    target_user = SimpleNamespace(id=member_id, full_name="Team member", email="member@example.test")
+    target_user = SimpleNamespace(id=member_id, full_name="Team member", email="member@example.com")
     new_role = SimpleNamespace(id=new_role_id, name="manager")
     user_role = SimpleNamespace(role_id=old_role_id)
     db = _FakeDatabase(
