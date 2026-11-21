@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingState } from '@/components/ui/States';
 import { moneyToCents, purchaseApi } from '@/lib/api';
+import { formatCurrency } from '@/lib/format';
 import { createIdempotencyKey } from '@/lib/backend';
 import { colors, spacing, fontSizes, fontWeights } from '@/theme';
 import { Search } from 'lucide-react-native';
@@ -23,7 +24,7 @@ export default function NewPurchaseScreen() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bank' | 'card' | 'mobile_money' | 'other'>('cash');
   const [notes, setNotes] = useState('');
   const [lineItems, setLineItems] = useState<{ productId: string; quantity: string; unitCost: string }[]>(
-    [{ productId: '', quantity: '1', unitCost: '0.00' }]
+    [{ productId: '', quantity: '1', unitCost: '0' }]
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,7 @@ export default function NewPurchaseScreen() {
 
   const filteredSuppliers = suppliers.filter((s) => s.name.toLowerCase().includes(supplierSearch.toLowerCase()));
 
-  const addLineItem = () => setLineItems([...lineItems, { productId: '', quantity: '1', unitCost: '0.00' }]);
+  const addLineItem = () => setLineItems([...lineItems, { productId: '', quantity: '1', unitCost: '0' }]);
   const removeLineItem = (index: number) => setLineItems(lineItems.filter((_, i) => i !== index));
   const updateLineItem = (index: number, field: string, value: string) =>
     setLineItems(lineItems.map((item, i) => (i === index ? { ...item, [field]: value } : item)));
@@ -40,7 +41,7 @@ export default function NewPurchaseScreen() {
     const quantity = Number(item.quantity);
     if (!Number.isSafeInteger(quantity) || quantity <= 0) return sum;
     try {
-      return sum + quantity * moneyToCents(item.unitCost);
+      return sum + quantity * moneyToCents(item.unitCost, currentBusiness?.currency_exponent ?? 2);
     } catch {
       return sum;
     }
@@ -63,10 +64,12 @@ export default function NewPurchaseScreen() {
         return {
           product_id: item.productId,
           quantity,
-          unit_cost_cents: moneyToCents(item.unitCost),
+          unit_cost_cents: moneyToCents(item.unitCost, currentBusiness.currency_exponent),
         };
       });
-      const amountPaidCents = paidAmount.trim() ? moneyToCents(paidAmount) : 0;
+      const amountPaidCents = paidAmount.trim()
+        ? moneyToCents(paidAmount, currentBusiness.currency_exponent)
+        : 0;
       if (amountPaidCents > totalCents) throw new Error('Amount paid cannot exceed the purchase total.');
 
       const request = {
@@ -141,7 +144,7 @@ export default function NewPurchaseScreen() {
                   key={product.id}
                   onPress={() => {
                     updateLineItem(i, 'productId', product.id);
-                    updateLineItem(i, 'unitCost', Number(product.cost_price).toFixed(2));
+                    updateLineItem(i, 'unitCost', Number(product.cost_price).toFixed(currentBusiness?.currency_exponent ?? 2));
                   }}
                   style={[styles.chip, item.productId === product.id && styles.chipSelected]}
                 >
@@ -159,7 +162,7 @@ export default function NewPurchaseScreen() {
 
       <Card>
         <Text style={styles.receiptHint}>Stock is added when this purchase is received. The server calculates the total and updates inventory and accounting together.</Text>
-        <Input label="Amount Paid Now" value={paidAmount} onChangeText={setPaidAmount} placeholder="0.00" keyboardType="numeric" hint={`Leave at 0 to record the balance as payable in ${currentBusiness?.currency ?? 'USD'}`} />
+        <Input label="Amount Paid Now" value={paidAmount} onChangeText={setPaidAmount} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`Leave at 0 to record the balance as payable in ${currentBusiness?.currency ?? 'USD'}`} />
         <Text style={styles.label}>Payment Method (when paying now)</Text>
         <View style={styles.statusRow}>
           {(['cash', 'bank', 'card', 'mobile_money', 'other'] as const).map((method) => (
@@ -173,7 +176,7 @@ export default function NewPurchaseScreen() {
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{(totalCents / 100).toFixed(2)} {currentBusiness?.currency}</Text>
+          <Text style={styles.totalValue}>{formatCurrency(totalCents / 100, currentBusiness?.currency, currentBusiness?.currency_exponent ?? 2)}</Text>
         </View>
       </Card>
 

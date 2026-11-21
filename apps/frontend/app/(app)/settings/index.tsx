@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { colors, spacing, fontSizes, fontWeights } from '@/theme';
-import { User, Building2, Shield, Bell, CreditCard, LogOut, ChevronRight, Globe } from 'lucide-react-native';
+import { User, Building2, Shield, Bell, CreditCard, LogOut, ChevronRight, Globe, Users, Activity } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -52,6 +52,8 @@ export default function SettingsScreen() {
       title: 'Business',
       items: [
         { icon: Building2, label: 'Business Profile', action: () => router.push('/(app)/settings/business' as any) },
+        { icon: Users, label: 'Team and invitations', action: () => router.push('/(app)/settings/team' as any) },
+        { icon: Activity, label: 'Business activity', action: () => router.push('/(app)/settings/activity' as any) },
         { icon: Globe, label: 'Currency & Timezone', badge: currentBusiness?.currency ?? 'USD' },
         { icon: CreditCard, label: 'Free Testing Access', action: () => router.push('/(app)/billing' as any), badge: 'Free' },
       ],

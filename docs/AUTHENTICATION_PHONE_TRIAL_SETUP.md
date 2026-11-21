@@ -2,7 +2,7 @@
 
 ## Local email confirmation
 
-The backend sends signup and resend links to:
+The backend creates accounts through Supabase Auth's public signup API. Email confirmation must be enabled in the Supabase project; a new account has no usable session until the user follows the confirmation link. The backend requests signup and resend links to:
 
 ```text
 http://localhost:8081/auth/callback
@@ -10,7 +10,7 @@ http://localhost:8081/auth/callback
 
 This is the default `AUTH_EMAIL_REDIRECT_URL`. Set that non-secret setting in the backend environment when the frontend URL changes. In Supabase Dashboard, add the exact callback URL to **Authentication → URL Configuration → Redirect URLs**. Add the deployed HTTPS callback URL there before production use. A confirmation email sent before this setting was applied still contains its old destination and may have expired; request a fresh email.
 
-The callback exchanges the confirmation link through the Supabase client, then routes a confirmed user to phone verification. Keep the Supabase confirmation email template's confirmation URL intact.
+The callback completes Supabase's confirmation flow through the frontend client, then routes a confirmed user to phone verification. BusinessIQ creates the user, organization, owner membership and default chart in one database transaction at signup; that pending account is not available through an authenticated session before email confirmation. Keep the Supabase confirmation email template's confirmation URL intact. If email confirmation is disabled, the backend rejects new signup rather than silently granting an unverified account access.
 
 ## SMS phone verification
 

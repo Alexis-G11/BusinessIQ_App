@@ -47,6 +47,7 @@ class Expense(Base):
     amount_paid_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     idempotency_key: Mapped[str] = mapped_column(String, nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     incurred_at: Mapped[date] = mapped_column(Date, nullable=False)
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useBusiness } from '@/context/BusinessContext';
@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { colors, spacing, fontSizes, fontWeights } from '@/theme';
 import { expenseApi } from '@/lib/api';
-import { useAuth } from '@/context/AuthContext';
+import { createIdempotencyKey } from '@/lib/backend';
 
 const CATEGORIES = [
   { value: 'rent', label: 'Rent' },
@@ -34,7 +34,7 @@ const PAYMENT_METHODS = [
 export default function NewExpenseScreen() {
   const router = useRouter();
   const { currentBusiness } = useBusiness();
-  const { session } = useAuth();
+  const idempotencyKey = useRef(createIdempotencyKey());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,10 +47,13 @@ export default function NewExpenseScreen() {
     notes: '',
   });
 
-  const update = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
+  const update = (key: string, value: string) => {
+    idempotencyKey.current = createIdempotencyKey();
+    setForm((f) => ({ ...f, [key]: value }));
+  };
 
   const handleSave = async () => {
-    if (!currentBusiness || !session?.user) return;
+    if (!currentBusiness) return;
     if (!form.description.trim()) {
       setError('Description is required.');
       return;
@@ -64,14 +67,14 @@ export default function NewExpenseScreen() {
     setError(null);
 
     try {
-      await expenseApi.create(currentBusiness.id, session.user.id, {
+      await expenseApi.create(currentBusiness.id, {
         description: form.description.trim(),
-        amount: Number(form.amount),
+        amount: form.amount,
         category: form.category as any,
         payment_method: form.payment_method as any,
         expense_date: form.expense_date,
         notes: form.notes.trim() || null,
-      });
+      }, idempotencyKey.current, currentBusiness.currency_exponent);
       router.replace('/(app)/expenses');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create expense');
@@ -94,7 +97,7 @@ export default function NewExpenseScreen() {
 
       <Card>
         <Input label="Description *" value={form.description} onChangeText={(v) => update('description', v)} placeholder="e.g. Office rent for October" />
-        <Input label="Amount *" value={form.amount} onChangeText={(v) => update('amount', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
+        <Input label="Amount *" value={form.amount} onChangeText={(v) => update('amount', v)} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
 
         <Text style={styles.label}>Category</Text>
         <View style={styles.chipRow}>

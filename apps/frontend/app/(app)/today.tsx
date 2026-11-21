@@ -28,6 +28,7 @@ export default function TodayScreen() {
   if (!currentBusiness || !stats) return <EmptyState title="No data" message="Start recording transactions to see today's summary." />;
 
   const currency = currentBusiness.currency;
+  const currencyExponent = currentBusiness.currency_exponent;
   const todayStr = new Date().toISOString().split('T')[0];
 
   const todaySales = sales.filter((s) => s.created_at.startsWith(todayStr));
@@ -71,17 +72,17 @@ export default function TodayScreen() {
       <View style={styles.kpiRow}>
         <KPICard
           label="Today's Sales"
-          value={formatCurrency(stats.todaySales, currency)}
+          value={formatCurrency(stats.todaySales, currency, currencyExponent)}
           icon={<ShoppingCart size={16} color={colors.blue} />}
         />
         <KPICard
           label="Today's Expenses"
-          value={formatCurrency(stats.todayExpenses, currency)}
+          value={formatCurrency(stats.todayExpenses, currency, currencyExponent)}
           icon={<Receipt size={16} color={colors.danger} />}
         />
         <KPICard
           label="Net Today"
-          value={formatCurrency(stats.todaySales - stats.todayExpenses, currency)}
+          value={formatCurrency(stats.todaySales - stats.todayExpenses, currency, currencyExponent)}
           icon={<TrendingUp size={16} color={stats.todaySales >= stats.todayExpenses ? colors.success : colors.danger} />}
         />
       </View>
@@ -104,7 +105,7 @@ export default function TodayScreen() {
                 <Text style={styles.listItemMeta}>{sale.sale_number} · {formatRelative(sale.created_at)}</Text>
               </View>
               <View style={styles.listItemRight}>
-                <Text style={styles.listItemAmount}>{formatCurrency(Number(sale.total), currency)}</Text>
+                <Text style={styles.listItemAmount}>{formatCurrency(Number(sale.total), currency, currencyExponent)}</Text>
                 <Badge label={sale.status} tone={sale.status === 'completed' ? 'success' : 'neutral'} />
               </View>
             </View>
@@ -131,7 +132,7 @@ export default function TodayScreen() {
               </View>
               <View style={styles.listItemRight}>
                 <Text style={[styles.listItemAmount, { color: colors.danger }]}>
-                  -{formatCurrency(Number(expense.amount), currency)}
+                  -{formatCurrency(Number(expense.amount), currency, currencyExponent)}
                 </Text>
               </View>
             </View>

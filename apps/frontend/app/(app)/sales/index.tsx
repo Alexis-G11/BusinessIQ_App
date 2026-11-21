@@ -33,6 +33,7 @@ export default function SalesScreen() {
   if (error) return <ErrorState message={error} onRetry={refetch} />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const totalRevenue = sales.filter((s) => s.status === 'completed').reduce((sum, s) => sum + Number(s.total), 0);
 
   return (
@@ -44,7 +45,7 @@ export default function SalesScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.pageTitle}>Sales & POS</Text>
-          <Text style={styles.pageSubtitle}>{sales.length} sales · {formatCurrency(totalRevenue, currency)} total</Text>
+          <Text style={styles.pageSubtitle}>{sales.length} sales · {formatCurrency(totalRevenue, currency, currencyExponent)} total</Text>
         </View>
         <Button label="New Sale" onPress={() => router.push('/(app)/sales/new' as any)} leftIcon={<Plus size={18} color={colors.textInverse} />} />
       </View>
@@ -88,7 +89,7 @@ export default function SalesScreen() {
               <Text style={[styles.colNum, styles.cellMono]}>{sale.sale_number}</Text>
               <Text style={[styles.colCustomer, styles.cell]} numberOfLines={1}>{sale.contact_name ?? 'Walk-in'}</Text>
               <Text style={[styles.colDate, styles.cellMeta]}>{formatDate(sale.created_at, { month: 'short', day: 'numeric' })}</Text>
-              <Text style={[styles.colTotal, styles.cellBold]}>{formatCurrency(Number(sale.total), currency)}</Text>
+              <Text style={[styles.colTotal, styles.cellBold]}>{formatCurrency(Number(sale.total), currency, currencyExponent)}</Text>
               <View style={styles.colStatus}>
                 <Badge
                   label={sale.status}

@@ -13,6 +13,7 @@ from app.database import get_db
 from app.models.inventory import InventoryTransaction
 from app.models.product import Product
 from app.permissions import OrgContext, require_permission
+from app.services.audit import record_audit_event
 
 router = APIRouter(prefix="/api/v1/inventory", tags=["inventory"])
 
@@ -201,6 +202,16 @@ async def create_adjustment(
         idempotency_request_hash=request_hash,
     )
     db.add(movement)
+    await db.flush()
+    record_audit_event(
+        db,
+        organization_id=ctx.organization_id,
+        actor_user_id=ctx.user.id,
+        action="inventory.adjusted",
+        target_type="inventory_movement",
+        target_id=movement.id,
+        details={"product_id": str(product.id), "quantity_change": change, "reason": body.reason},
+    )
     await db.commit()
     await db.refresh(movement)
     return _to_out(movement, product.name)

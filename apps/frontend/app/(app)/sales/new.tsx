@@ -73,8 +73,25 @@ export default function NewSaleScreen() {
     setCart((prev) => prev.filter((item) => item.productId !== productId));
   };
 
+  const handleBarcodeSubmit = (rawValue: string) => {
+    const code = rawValue.trim();
+    if (!code) return;
+    const match = products.find((product) =>
+      product.is_active && product.barcode?.trim().toLowerCase() === code.toLowerCase()
+    );
+    if (!match) {
+      setSearch(code);
+      setError(`No active product matches barcode ${code}. Check the code or select a search result.`);
+      return;
+    }
+    addToCart(match.id, match.name, Number(match.selling_price));
+    setSearch('');
+    setError(null);
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
   const quoteKey = `${currentBusiness?.id ?? ''}:${JSON.stringify(cart.map(({ productId, quantity }) => [productId, quantity]))}:${discount}`;
   const quote = quoteState?.key === quoteKey ? quoteState.quote ?? null : null;
   const quoteError = quoteState?.key === quoteKey ? quoteState.error ?? null : null;
@@ -87,7 +104,7 @@ export default function NewSaleScreen() {
       try {
         const result = await saleApi.quote(currentBusiness.id, {
           items: cart.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
-          discount_cents: moneyToCents(discount),
+          discount_cents: moneyToCents(discount, currentBusiness.currency_exponent),
         });
         if (active) setQuoteState({ key: quoteKey, quote: result });
       } catch (e) {
@@ -117,7 +134,9 @@ export default function NewSaleScreen() {
     setError(null);
 
     try {
-      const paidCents = paidAmount.trim() ? moneyToCents(paidAmount) : quote.total_cents;
+      const paidCents = paidAmount.trim()
+        ? moneyToCents(paidAmount, currentBusiness.currency_exponent)
+        : quote.total_cents;
       if (paidCents > quote.total_cents) throw new Error('Amount paid cannot exceed the sale total.');
       if (paidCents < quote.total_cents && !customerId) {
         throw new Error('Select a customer when the sale is not paid in full.');
@@ -136,7 +155,7 @@ export default function NewSaleScreen() {
 
       Alert.alert(
         'Sale Complete',
-        `Sale ${sale.reference ?? ''} recorded successfully. Total: ${formatCurrency(sale.total_cents / 100, currency)}`,
+        `Sale ${sale.reference ?? ''} recorded successfully. Total: ${formatCurrency(sale.total_cents / 100, currency, currencyExponent)}`,
       );
       router.replace('/(app)/sales');
     } catch (e) {
@@ -163,7 +182,17 @@ export default function NewSaleScreen() {
         <View style={styles.productPanel}>
           <View style={styles.searchInputWrap}>
             <Search size={18} color={colors.textSecondary} />
-            <TextInput style={styles.searchInput} placeholder="Search products by name, SKU, or barcode..." value={search} onChangeText={setSearch} placeholderTextColor={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search products or scan a barcode..."
+              value={search}
+              onChangeText={setSearch}
+              onSubmitEditing={(event) => handleBarcodeSubmit(event.nativeEvent.text)}
+              returnKeyType="done"
+              blurOnSubmit={false}
+              placeholderTextColor={colors.textSecondary}
+              accessibilityLabel="Search products or scan a USB or Bluetooth HID barcode"
+            />
           </View>
           <ScrollView style={styles.productList} contentContainerStyle={{ gap: spacing.sm }}>
             {filteredProducts.length === 0 ? (
@@ -179,7 +208,7 @@ export default function NewSaleScreen() {
                     <Text style={styles.productItemName}>{product.name}</Text>
                     <Text style={styles.productItemStock}>Stock: {Number(product.stock_quantity)} {product.unit}</Text>
                   </View>
-                  <Text style={styles.productItemPrice}>{formatCurrency(Number(product.selling_price), currency)}</Text>
+                  <Text style={styles.productItemPrice}>{formatCurrency(Number(product.selling_price), currency, currencyExponent)}</Text>
                 </TouchableOpacity>
               ))
             )}
@@ -200,7 +229,7 @@ export default function NewSaleScreen() {
                 <View key={item.productId} style={styles.cartItem}>
                   <View style={styles.cartItemInfo}>
                     <Text style={styles.cartItemName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.cartItemPrice}>{formatCurrency(item.price, currency)}</Text>
+                    <Text style={styles.cartItemPrice}>{formatCurrency(item.price, currency, currencyExponent)}</Text>
                   </View>
                   <View style={styles.cartItemControls}>
                     <TouchableOpacity onPress={() => updateQuantity(item.productId, -1)} style={styles.qtyBtn}>
@@ -223,17 +252,17 @@ export default function NewSaleScreen() {
             <View style={styles.cartSummary}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>{formatCurrency(subtotal, currency)}</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(subtotal, currency, currencyExponent)}</Text>
               </View>
-              <Input label="Discount" value={discount} onChangeText={setDiscount} placeholder="0.00" keyboardType="numeric" hint={`In ${currency}`} />
+              <Input label="Discount" value={discount} onChangeText={setDiscount} placeholder={currencyExponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currency}`} />
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Tax (business settings)</Text>
-                <Text style={styles.summaryValue}>{quote ? formatCurrency(quote.tax_cents / 100, currency) : '—'}</Text>
+                <Text style={styles.summaryValue}>{quote ? formatCurrency(quote.tax_cents / 100, currency, currencyExponent) : '—'}</Text>
               </View>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalValue}>
-                  {quoteLoading ? 'Calculating…' : quote ? formatCurrency(quote.total_cents / 100, currency) : '—'}
+                  {quoteLoading ? 'Calculating…' : quote ? formatCurrency(quote.total_cents / 100, currency, currencyExponent) : '—'}
                 </Text>
               </View>
 
@@ -273,7 +302,7 @@ export default function NewSaleScreen() {
                 label="Amount Paid"
                 value={paidAmount}
                 onChangeText={setPaidAmount}
-                placeholder={quote ? (quote.total_cents / 100).toFixed(2) : '0.00'}
+                placeholder={quote ? (quote.total_cents / 100).toFixed(currencyExponent) : currencyExponent === 0 ? '0' : '0.00'}
                 keyboardType="numeric"
                 hint={`Leave empty for full payment in ${currency}`}
               />

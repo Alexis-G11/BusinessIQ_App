@@ -45,6 +45,7 @@ export interface Business {
   business_type: BusinessType | null;
   country: string | null;
   currency: string;
+  currency_exponent: number;
   timezone: string;
   address: string | null;
   phone: string | null;
@@ -52,8 +53,9 @@ export interface Business {
   tax_id: string | null;
   fiscal_year_start: string | null;
   logo_url: string | null;
-  subscription_plan: SubscriptionPlan;
+  subscription_plan: SubscriptionPlan | null;
   subscription_status: SubscriptionStatus;
+  trial_started_at: string | null;
   trial_ends_at: string | null;
   created_at: string;
   updated_at: string;
@@ -121,6 +123,7 @@ export interface Sale {
   tax?: number;
   total: number;
   paid_amount: number;
+  sale_date?: string;
   status: SaleStatus;
   payment_method: PaymentMethod | null;
   notes: string | null;
@@ -144,9 +147,10 @@ export interface Expense {
   id: string;
   business_id: string;
   category: ExpenseCategory;
+  category_name?: string;
   description: string;
   amount: number;
-  payment_method: PaymentMethod;
+  payment_method: PaymentMethod | null;
   expense_date: string;
   supplier_id: string | null;
   recurring: boolean;

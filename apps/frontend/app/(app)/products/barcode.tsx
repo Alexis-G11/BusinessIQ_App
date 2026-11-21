@@ -15,7 +15,7 @@ export default function BarcodeAddScreen() {
   const router = useRouter();
   const { currentBusiness } = useBusiness();
   const [permission, requestPermission] = useCameraPermissions();
-  const [mode, setMode] = useState<'scan' | 'manual'>('scan');
+  const [mode, setMode] = useState<'scan' | 'manual' | 'hid'>('scan');
   const [scanned, setScanned] = useState(false);
   const [barcode, setBarcode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +43,15 @@ export default function BarcodeAddScreen() {
     setMode('manual');
   };
 
+  const handleHidScan = (value: string) => {
+    const scannedValue = value.trim();
+    if (!scannedValue) return;
+    setBarcode(scannedValue);
+    setScanned(true);
+    idempotencyKey.current = createIdempotencyKey();
+    setMode('manual');
+  };
+
   const handleSave = async () => {
     if (!currentBusiness) return;
     if (!barcode.trim()) { setError('Barcode is required.'); return; }
@@ -61,7 +70,7 @@ export default function BarcodeAddScreen() {
         selling_price: Number(form.selling_price),
         reorder_threshold: 0,
         unit: form.unit,
-      }, idempotencyKey.current);
+      }, idempotencyKey.current, currentBusiness.currency_exponent);
       router.replace('/(app)/products');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create product');
@@ -85,7 +94,7 @@ export default function BarcodeAddScreen() {
       {/* Mode toggle */}
       <View style={styles.modeToggle}>
         <TouchableOpacity
-          onPress={() => setMode('scan')}
+          onPress={() => { setScanned(false); setMode('scan'); }}
           style={[styles.modeBtn, mode === 'scan' && styles.modeBtnActive]}
         >
           <ScanLine size={18} color={mode === 'scan' ? colors.textInverse : colors.textSecondary} />
@@ -98,7 +107,31 @@ export default function BarcodeAddScreen() {
           <Keyboard size={18} color={mode === 'manual' ? colors.textInverse : colors.textSecondary} />
           <Text style={[styles.modeLabel, mode === 'manual' && styles.modeLabelActive]}>Enter Manually</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => { setScanned(false); setBarcode(''); setMode('hid'); }}
+          style={[styles.modeBtn, mode === 'hid' && styles.modeBtnActive]}
+          accessibilityRole="button"
+          accessibilityLabel="Use USB or Bluetooth barcode scanner"
+        >
+          <Keyboard size={18} color={mode === 'hid' ? colors.textInverse : colors.textSecondary} />
+          <Text style={[styles.modeLabel, mode === 'hid' && styles.modeLabelActive]}>USB / Bluetooth</Text>
+        </TouchableOpacity>
       </View>
+
+      {mode === 'hid' && <Card>
+        <Text style={styles.sectionLabel}>Keyboard scanner</Text>
+        <Text style={styles.webCameraText}>Connect a USB scanner or pair a Bluetooth scanner in your device settings. Keep this field focused and configure the scanner to send Enter after each barcode.</Text>
+        <Input
+          label="Scan barcode"
+          value={barcode}
+          onChangeText={(value) => setBarcode(value)}
+          onSubmitEditing={handleHidScan}
+          autoFocus
+          returnKeyType="done"
+          blurOnSubmit={false}
+          placeholder="Scan here; Enter completes the scan"
+        />
+      </Card>}
 
       {/* Barcode field — always visible */}
       {mode === 'manual' && (
@@ -111,7 +144,7 @@ export default function BarcodeAddScreen() {
               setBarcode(value);
             }}
             placeholder="e.g. 8901234567890"
-            keyboardType="numeric"
+            hint="Letters, digits, and standard barcode characters are supported."
           />
         </Card>
       )}
@@ -159,10 +192,10 @@ export default function BarcodeAddScreen() {
           <Input label="SKU" value={form.sku} onChangeText={(v) => update('sku', v)} placeholder="SKU-007" />
           <View style={styles.row}>
             <View style={styles.halfInput}>
-              <Input label="Cost price" value={form.cost_price} onChangeText={(v) => update('cost_price', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
+          <Input label="Cost price" value={form.cost_price} onChangeText={(v) => update('cost_price', v)} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
             </View>
             <View style={styles.halfInput}>
-              <Input label="Selling price *" value={form.selling_price} onChangeText={(v) => update('selling_price', v)} placeholder="0.00" keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
+          <Input label="Selling price *" value={form.selling_price} onChangeText={(v) => update('selling_price', v)} placeholder={currentBusiness?.currency_exponent === 0 ? '0' : '0.00'} keyboardType="numeric" hint={`In ${currentBusiness?.currency ?? 'USD'}`} />
             </View>
           </View>
           <Input label="Unit" value={form.unit} onChangeText={(v) => update('unit', v)} placeholder="piece, kg, liter..." />

@@ -25,6 +25,7 @@ export default function InvoicesScreen() {
   if (loading) return <LoadingState message="Loading invoices..." />;
 
   const currency = currentBusiness?.currency ?? 'USD';
+  const currencyExponent = currentBusiness?.currency_exponent ?? 2;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -63,7 +64,7 @@ export default function InvoicesScreen() {
                 <Text style={[styles.colNum, styles.cellMono]}>{invoice.invoice_number}</Text>
                 <Text style={[styles.colCustomer, styles.cell]} numberOfLines={1}>{invoice.contact_name}</Text>
                 <Text style={[styles.colDate, styles.cellMeta]}>{formatDate(invoice.due_date, { month: 'short', day: 'numeric' })}</Text>
-                <Text style={[styles.colTotal, styles.cellBold]}>{formatCurrency(Number(invoice.total), currency)}</Text>
+                <Text style={[styles.colTotal, styles.cellBold]}>{formatCurrency(Number(invoice.total), currency, currencyExponent)}</Text>
                 <View style={styles.colStatus}>
                   <Badge
                     label={overdue && invoice.status !== 'paid' ? 'overdue' : invoice.status}

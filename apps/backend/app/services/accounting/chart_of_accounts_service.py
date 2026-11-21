@@ -26,7 +26,12 @@ DEFAULT_CHART_OF_ACCOUNTS = [
 ]
 
 
-async def seed_default_chart_of_accounts(db: AsyncSession, organization_id: uuid.UUID) -> list[Account]:
+async def seed_default_chart_of_accounts(
+    db: AsyncSession,
+    organization_id: uuid.UUID,
+    *,
+    commit: bool = True,
+) -> list[Account]:
     """Called once, right after an organization is created."""
     accounts = []
     for account_code, name, account_type, normal_balance in DEFAULT_CHART_OF_ACCOUNTS:
@@ -41,7 +46,10 @@ async def seed_default_chart_of_accounts(db: AsyncSession, organization_id: uuid
         db.add(account)
         accounts.append(account)
 
-    await db.commit()
-    for account in accounts:
-        await db.refresh(account)
+    if commit:
+        await db.commit()
+        for account in accounts:
+            await db.refresh(account)
+    else:
+        await db.flush()
     return accounts

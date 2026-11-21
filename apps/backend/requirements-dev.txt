@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Test runner. Keep runtime dependencies pinned separately in requirements.txt.
+pytest==8.4.2

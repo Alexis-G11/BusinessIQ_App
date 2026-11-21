@@ -1,8 +1,10 @@
 from app.database import Base
 
 from app.models.organization import Organization
+from app.models.audit import OrganizationAuditEvent
 from app.models.role import Role, Permission, RolePermission, UserRole
-from app.models.user import User, OrganizationUser, PhoneTrialClaim
+from app.models.user import User, OrganizationUser, OrganizationMembershipEvent, OrganizationInvitation, PhoneTrialClaim
+from app.models.trial_decision import OrganizationTrialDecision
 from app.models.customer import Customer
 from app.models.supplier import Supplier
 from app.models.product import ProductCategory, Product

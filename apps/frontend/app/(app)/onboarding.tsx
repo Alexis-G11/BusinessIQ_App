@@ -20,8 +20,8 @@ const INDUSTRIES = [
   'Transportation', 'Other',
 ];
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'NGN', 'KES', 'GHS', 'ZAR', 'INR', 'CAD', 'AUD'];
-const TIMEZONES = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Africa/Lagos', 'Africa/Nairobi', 'Asia/Dubai', 'Asia/Kolkata'];
+const CURRENCIES = ['RWF', 'USD', 'EUR', 'GBP', 'NGN', 'KES', 'GHS', 'ZAR', 'UGX', 'TZS', 'XOF', 'XAF', 'EGP', 'MAD', 'ETB', 'CAD', 'AUD'];
+const TIMEZONES = ['Africa/Kigali', 'UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Africa/Lagos', 'Africa/Nairobi', 'Asia/Dubai'];
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -35,14 +35,13 @@ export default function OnboardingScreen() {
     legal_name: '',
     industry: 'Retail',
     business_type: 'sole_proprietor' as const,
-    country: '',
-    currency: 'USD',
-    timezone: 'UTC',
+    country: 'RW',
+    currency: 'RWF',
+    timezone: 'Africa/Kigali',
     address: '',
     phone: '',
     email: '',
     tax_id: '',
-    fiscal_year_start: 'January',
   });
 
   const update = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }));
@@ -55,10 +54,7 @@ export default function OnboardingScreen() {
     setLoading(true);
     setError(null);
     try {
-      await createBusiness({
-        ...form,
-        trial_ends_at: new Date(Date.now() + 7 * 86400000).toISOString(),
-      });
+      await createBusiness(form);
       router.replace('/(app)');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create business.');
@@ -129,10 +125,12 @@ export default function OnboardingScreen() {
           {step === 1 && (
             <View>
               <Input
-                label="Country"
+                label="Country code"
                 value={form.country}
-                onChangeText={(v) => update('country', v)}
-                placeholder="United States"
+                onChangeText={(v) => update('country', v.toUpperCase().slice(0, 2))}
+                placeholder="RW"
+                autoCapitalize="characters"
+                hint="Use the two-letter ISO code, such as RW or US."
               />
               <Text style={styles.label}>Currency</Text>
               <View style={styles.chipRow}>

@@ -16,7 +16,7 @@ export default function AuthCallbackScreen() {
     const errorCode = hash.get('error_code') ?? query.get('error_code');
     if (!errorCode) return null;
     return errorCode === 'otp_expired'
-      ? 'This confirmation link has expired. Create the account again to request a fresh email.'
+      ? 'This confirmation link has expired. Return to sign-up and request a fresh confirmation email.'
       : 'This confirmation link is invalid or could not be completed.';
   }, []);
   const visibleError = linkError ?? callbackError;

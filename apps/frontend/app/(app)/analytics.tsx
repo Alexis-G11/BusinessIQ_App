@@ -24,6 +24,7 @@ export default function AnalyticsScreen() {
   if (!currentBusiness || !stats) return <EmptyState title="No data" message="Start recording transactions to see analytics." />;
 
   const currency = currentBusiness.currency;
+  const currencyExponent = currentBusiness.currency_exponent ?? 2;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
@@ -38,21 +39,21 @@ export default function AnalyticsScreen() {
             <View style={[styles.metricIcon, { backgroundColor: colors.infoBg }]}><DollarSign size={18} color={colors.info} /></View>
             <Text style={styles.metricLabel}>Revenue</Text>
           </View>
-          <Text style={styles.metricValue}>{formatCompactCurrency(stats.revenue, currency)}</Text>
+          <Text style={styles.metricValue}>{formatCompactCurrency(stats.revenue, currency, currencyExponent)}</Text>
         </Card>
         <Card style={styles.metricCard}>
           <View style={styles.metricTop}>
             <View style={[styles.metricIcon, { backgroundColor: colors.dangerBg }]}><TrendingDown size={18} color={colors.danger} /></View>
             <Text style={styles.metricLabel}>Expenses</Text>
           </View>
-          <Text style={styles.metricValue}>{formatCompactCurrency(stats.expenses, currency)}</Text>
+          <Text style={styles.metricValue}>{formatCompactCurrency(stats.expenses, currency, currencyExponent)}</Text>
         </Card>
         <Card style={styles.metricCard}>
           <View style={styles.metricTop}>
             <View style={[styles.metricIcon, { backgroundColor: colors.successBg }]}><TrendingUp size={18} color={colors.success} /></View>
             <Text style={styles.metricLabel}>Profit</Text>
           </View>
-          <Text style={styles.metricValue}>{formatCompactCurrency(stats.profit, currency)}</Text>
+          <Text style={styles.metricValue}>{formatCompactCurrency(stats.profit, currency, currencyExponent)}</Text>
         </Card>
         <Card style={styles.metricCard}>
           <View style={styles.metricTop}>
@@ -89,7 +90,7 @@ export default function AnalyticsScreen() {
               data={stats.expenseByCategory.map((e) => ({ label: e.label, value: e.value, color: e.color }))}
               size={140}
               centerLabel="Total"
-              centerValue={formatCompactCurrency(stats.expenseByCategory.reduce((s, e) => s + e.value, 0), currency)}
+              centerValue={formatCompactCurrency(stats.expenseByCategory.reduce((s, e) => s + e.value, 0), currency, currencyExponent)}
             />
           ) : (
             <View style={styles.noData}><Text style={styles.noDataText}>No expense data</Text></View>

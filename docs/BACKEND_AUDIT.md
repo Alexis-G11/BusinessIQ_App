@@ -16,15 +16,15 @@ This is a baseline engineering audit, not an independent penetration test or a p
 
 ## Gaps and risks to address in later steps
 
-- Signup creates one organization. There are no organization-list/create, membership invitation, or membership administration routes; membership lifecycle/status fields are not implemented.
+- `GET /organizations` and phone-verified `POST /organizations` now list and create business workspaces; create initializes owner membership, role, chart, and a per-business trial decision. Invitation/removal/transfer workflows and membership lifecycle/status fields remain unimplemented.
 - Subscription fields remain on `organizations`; Stripe currently has a client/key foundation but no checkout or verified webhook routes. The authentication increment below starts a seven-day trial after phone verification and enforces trial entitlement on API business routes.
 - MFA, login/signup rate limits, session revocation, and audit logging remain unimplemented. Email password recovery is provided by Supabase Auth in the frontend; delivery configuration has not been verified.
-- Existing BusinessIQ user rows whose Supabase Auth identities are missing can no longer be mistaken for successful account creation: signup starts Auth registration for these records, and a confirmed session can relink the Auth ID while preserving organization and role foreign keys. Full confirmation-email delivery and sign-in round-trip testing remain pending.
+- Signup uses the Supabase public Auth API and requests email confirmation at the configured callback. Authenticated setup checks the Auth user's confirmed-email timestamp; existing BusinessIQ user rows whose Auth identities are missing can be relinked after confirmation while preserving organization and role foreign keys. Full confirmation-email delivery and sign-in round-trip testing remain pending.
 - Idempotency headers are optional on some financial/stock operations, including sales and customer payments; idempotency is required on purchases and expenses. Inventory adjustments also need review against the required idempotency policy.
 - Tenant-scoped foreign-key correctness is primarily enforced by API validation. The schema does not generally use composite foreign keys to guarantee that referenced rows belong to the same organization.
 - Accounting services exist, but financial-statement routes are missing. Trial-balance calculation calls the ledger once per account, which may become expensive as account and journal counts grow.
 - Invoices, refunds/reversals, bulk imports, analytics/forecasting, AI, and team-management routes are not present in the inspected router inventory.
-- Testing is provided mainly by manually invoked smoke scripts. No pytest suite/configuration or deployment/CI configuration was found in the repository inventory. Sales calculations do not currently expose the randomized `self_check` available in purchase and expense calculations.
+- Automated pure pytest coverage and CI configuration now exist for selected backend/frontend checks, alongside manually invoked smoke scripts. Financial route integration, signup/auth, tenant isolation, and migration tests are still missing. Sales calculations do not currently expose the randomized `self_check` available in purchase and expense calculations.
 - Full production validation remains outstanding: authenticated integration coverage, tenant-isolation tests, migration testing against an isolated database copy, performance testing, deployment configuration, and an independent security review.
 
 ## First increment: membership and role uniqueness
@@ -60,9 +60,11 @@ No claim of production readiness is made.
 
 ## Authentication and trial increment
 
-Signup now validates an international phone number and a password containing at least eight characters, a letter, and a number. The email callback is explicitly configured for the Expo frontend. Phone verification is performed by Supabase Auth; verified phone claims are unique and durable, and legacy phone values are backfilled as already claimed. New organizations remain pending until email and phone are verified, when a seven-day trial starts. Previously started trials are not reset.
+Signup validates an international phone number and a password containing at least eight characters, a letter, and a number. Phone verification is performed by Supabase Auth; verified phone claims are unique and durable, and legacy phone values are backfilled as already claimed. New organizations remain pending until phone verification, when a seven-day trial starts. Signup still administratively confirms email, so email verification is not enforced and remains a requirement gap. Previously started trials are not reset.
 
-FastAPI business routes now deny access until phone verification and while a trial is expired or inactive. The backend Alembic migration also enables RLS on the existing `organization_id` tables and denies direct Supabase client access to those tables, avoiding the separate, unapplied Bolt `business_id` schema. The API's database role bypasses RLS as configured. SMS delivery still requires enabling phone authentication and configuring an SMS provider in the Supabase Dashboard; see [AUTHENTICATION_PHONE_TRIAL_SETUP.md](./AUTHENTICATION_PHONE_TRIAL_SETUP.md).
+FastAPI business routes now deny access until phone verification and while a trial is expired or inactive. The backend Alembic migration also enables RLS on the existing `organization_id` tables and denies direct Supabase client access to those tables, avoiding the separate, unapplied Bolt `business_id` schema. The API enforces the same phone and subscription conditions in its permission dependency. The API's database role bypasses RLS as configured. SMS delivery still requires enabling phone authentication and configuring an SMS provider in the Supabase Dashboard; see [AUTHENTICATION_PHONE_TRIAL_SETUP.md](./AUTHENTICATION_PHONE_TRIAL_SETUP.md).
+
+The access predicate has pure boundary tests (verified/unverified, active/trialing/inactive, and expiry). Full signup and protected-route integration tests remain outstanding; the configured Supabase and database migration were not exercised for this increment.
 
 Signup confirmation and SMS delivery require live Supabase configuration and were not validated end to end here. The backend migration was not applied to the configured database.
 

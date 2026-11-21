@@ -12,8 +12,9 @@ from app.models.expenses import Expense, ExpenseCategory
 from app.models.organization import Organization
 from app.models.payments import Payment, PaymentAllocation
 from app.models.supplier import Supplier
-from app.money import cents_to_decimal
+from app.money import cents_to_decimal, validate_currency_precision
 from app.services.accounting.journal_service import JournalLineInput, create_and_post_journal_entry
+from app.services.audit import record_audit_event
 from app.services.expenses_calc import ExpenseError, expense_amounts, expense_ledger_lines
 
 METHOD_ACCOUNT = {"cash": "1000", "bank": "1010", "card": "1010", "mobile_money": "1010", "other": "1010"}
@@ -84,6 +85,7 @@ async def create_expense(
     supplier_id: uuid.UUID | None,
     description: str,
     idempotency_key: str,
+    notes: str | None = None,
 ) -> tuple[Expense, bool]:
     existing = await db.scalar(
         select(Expense).where(
@@ -95,6 +97,11 @@ async def create_expense(
         return existing, False
 
     org = await db.scalar(select(Organization).where(Organization.id == organization_id))
+    try:
+        validate_currency_precision(amount_cents, org.currency_exponent)
+        validate_currency_precision(amount_paid_cents, org.currency_exponent)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     today = datetime.now(ZoneInfo(org.timezone or "UTC")).date()
     if incurred_at > today:
         raise HTTPException(status_code=422, detail="The expense date cannot be in the future")
@@ -144,6 +151,7 @@ async def create_expense(
         amount_paid_cents=amount_paid_cents,
         idempotency_key=idempotency_key,
         description=description,
+        notes=notes,
         incurred_at=incurred_at,
         created_by=user_id,
     )
@@ -211,6 +219,16 @@ async def create_expense(
         source_id=expense.id,
         posted_by=user_id,
         commit=False,
+    )
+
+    record_audit_event(
+        db,
+        organization_id=organization_id,
+        actor_user_id=user_id,
+        action="expense.created",
+        target_type="expense",
+        target_id=expense.id,
+        details={"amount_cents": amount_cents, "amount_paid_cents": amount_paid_cents},
     )
 
     try:

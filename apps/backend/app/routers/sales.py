@@ -200,6 +200,7 @@ async def quote_sale(
             line_totals,
             body.discount_cents,
             organization.tax_rate_bps or 0,
+            organization.currency_exponent,
         )
     except SaleError as exc:
         raise HTTPException(status_code=422, detail=str(exc))

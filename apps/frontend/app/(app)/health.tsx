@@ -17,6 +17,7 @@ export default function HealthScreen() {
   if (!currentBusiness || !stats) return <EmptyState title="No data" message="Record transactions to see your business health." />;
 
   const currency = currentBusiness.currency;
+  const currencyExponent = currentBusiness.currency_exponent ?? 2;
   const profitMargin = stats.revenue > 0 ? (stats.profit / stats.revenue) * 100 : 0;
   const isProfitable = stats.profit > 0;
   const hasLowStock = stats.lowStockCount > 0;
@@ -35,7 +36,7 @@ export default function HealthScreen() {
     {
       label: 'Cash Position',
       status: stats.revenue - stats.expenses > 0 ? 'good' : 'warning',
-      message: `Net cash flow is ${formatCompactCurrency(stats.revenue - stats.expenses, currency)}.`,
+      message: `Net cash flow is ${formatCompactCurrency(stats.revenue - stats.expenses, currency, currencyExponent)}.`,
       icon: Activity,
     },
     {
@@ -50,7 +51,7 @@ export default function HealthScreen() {
       label: 'Receivables',
       status: hasReceivables ? 'info' : 'good',
       message: hasReceivables
-        ? `${formatCompactCurrency(stats.receivables, currency)} outstanding from customers.`
+        ? `${formatCompactCurrency(stats.receivables, currency, currencyExponent)} outstanding from customers.`
         : 'No outstanding receivables.',
       icon: CheckCircle,
     },
@@ -58,7 +59,7 @@ export default function HealthScreen() {
       label: 'Payables',
       status: hasPayables ? 'info' : 'good',
       message: hasPayables
-        ? `${formatCompactCurrency(stats.payables, currency)} owed to suppliers.`
+        ? `${formatCompactCurrency(stats.payables, currency, currencyExponent)} owed to suppliers.`
         : 'No outstanding payables.',
       icon: CheckCircle,
     },

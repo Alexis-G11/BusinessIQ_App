@@ -6,7 +6,13 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import { backendAuthApi, backendRequest, createIdempotencyKey } from '@/lib/backend';
+import {
+  backendAuthApi,
+  backendOrganizationApi,
+  backendRequest,
+  createIdempotencyKey,
+  type BackendOrganizationMembership,
+} from '@/lib/backend';
 import type {
   Profile,
   Business,
@@ -39,11 +45,16 @@ export interface AuthSession {
   access_token: string;
 }
 
-export function moneyToCents(value: string | number): number {
+export function moneyToCents(value: string | number, currencyExponent = 2): number {
   const raw = String(value).trim();
   if (!raw) return 0;
-  const match = /^(?:(\d+)(?:\.(\d{0,2}))?|\.(\d{1,2}))$/.exec(raw);
-  if (!match) throw new Error('Enter an amount with no more than two decimal places.');
+  if (!Number.isInteger(currencyExponent) || currencyExponent < 0 || currencyExponent > 2) {
+    throw new Error('This currency precision is not supported.');
+  }
+  const match = currencyExponent === 0
+    ? /^(\d+)$/.exec(raw)
+    : new RegExp(`^(?:(\\d+)(?:\\.(\\d{0,${currencyExponent}}))?|\\.(\\d{1,${currencyExponent}}))$`).exec(raw);
+  if (!match) throw new Error(`Enter an amount with no more than ${currencyExponent} decimal place${currencyExponent === 1 ? '' : 's'}.`);
   const whole = Number(match[1] ?? '0');
   const fractional = Number((match[2] ?? match[3] ?? '').padEnd(2, '0') || '0');
   const cents = whole * 100 + fractional;
@@ -119,7 +130,14 @@ export const authApi = {
       full_name: fullName,
       business_name: businessName,
       phone_number: phone,
+      country: 'RW',
+      currency: 'RWF',
+      timezone: 'Africa/Kigali',
     });
+  },
+
+  async resendConfirmation(email: string): Promise<void> {
+    await backendAuthApi.resendConfirmation(email);
   },
 
   async sendPhoneVerification(phone: string): Promise<void> {
@@ -179,7 +197,7 @@ export const authApi = {
 
 export const profileApi = {
   async get(userId: string): Promise<Profile | null> {
-    const { user } = await backendAuthApi.me();
+    const user = await backendAuthApi.profile();
     if (user.id !== userId) throw new Error('Authenticated user does not match the requested profile.');
     return {
       id: user.id,
@@ -193,15 +211,14 @@ export const profileApi = {
   },
 
   async update(userId: string, updates: Partial<Pick<Profile, 'full_name' | 'phone' | 'phone_verified'>>): Promise<void> {
-    const profile = await backendAuthApi.me();
-    if (profile.user.id !== userId) throw new Error('Authenticated user does not match the requested profile.');
-    if (Object.hasOwn(updates, 'phone_verified')) {
-      throw new Error('Phone verification cannot be changed from profile settings.');
+    const profile = await backendAuthApi.profile();
+    if (profile.id !== userId) throw new Error('Authenticated user does not match the requested profile.');
+    if (Object.hasOwn(updates, 'phone_verified') || Object.hasOwn(updates, 'phone')) {
+      throw new Error('Phone changes require the phone verification workflow.');
     }
-    const payload: { full_name?: string; phone_number?: string | null } = {};
+    const payload: { full_name?: string } = {};
     if (Object.hasOwn(updates, 'full_name')) payload.full_name = updates.full_name ?? undefined;
-    if (Object.hasOwn(updates, 'phone')) payload.phone_number = updates.phone;
-    await backendAuthApi.updateMe(payload);
+    await backendAuthApi.updateProfile(payload);
   },
 };
 
@@ -211,52 +228,99 @@ export const profileApi = {
 
 export const businessApi = {
   async listForUser(userId: string): Promise<{ businesses: Business[]; memberships: Membership[] }> {
-    const response = await backendAuthApi.me();
-    if (response.user.id !== userId) throw new Error('Authenticated user does not match the requested businesses.');
-    const org = response.organization;
-    const status = org.subscription_status === 'trialing' || org.subscription_status === 'active'
-      || org.subscription_status === 'pending_verification'
-      || org.subscription_status === 'past_due' || org.subscription_status === 'canceled'
-      || org.subscription_status === 'expired' ? org.subscription_status : 'expired';
-    const business: Business = {
-      id: org.id,
-      owner_id: response.is_owner ? userId : '',
-      name: org.name,
-      legal_name: null,
-      industry: org.industry,
-      business_type: 'other',
-      country: org.country,
-      currency: org.currency,
-      timezone: org.timezone,
-      address: null,
-      phone: null,
-      email: null,
-      tax_id: null,
-      fiscal_year_start: null,
-      logo_url: null,
-      subscription_plan: 'trial',
-      subscription_status: status,
-      trial_ends_at: org.trial_ends_at,
-      created_at: org.created_at,
-      updated_at: org.created_at,
+    const rows = await backendOrganizationApi.list();
+    if (rows.some((row) => row.user_id !== userId)) {
+      throw new Error('Authenticated user does not match the requested businesses.');
+    }
+    return {
+      businesses: rows.map((row) => businessFromOrganization(row, userId)),
+      memberships: rows.map((row) => membershipFromOrganization(row)),
     };
-    const membership: Membership = {
-      id: `owner:${org.id}:${userId}`,
-      business_id: org.id,
-      user_id: userId,
-      role: response.is_owner ? 'owner' : 'staff',
-      invited_email: null,
-      status: 'active',
-      created_at: org.created_at,
-      updated_at: org.created_at,
-    };
-    return { businesses: [business], memberships: [membership] };
   },
 
-  async create(_userId: string, _data: Partial<Business>): Promise<Business> {
-    throw new Error('Creating additional businesses is not available in the BusinessIQ API yet.');
+  async create(userId: string, data: Partial<Business>): Promise<Business> {
+    const name = data.name?.trim();
+    if (!name) throw new Error('A business name is required.');
+    const created = await backendOrganizationApi.create({
+      name,
+      legal_name: data.legal_name,
+      business_type: data.business_type,
+      industry: data.industry,
+      country: data.country?.trim() || undefined,
+      currency: data.currency ?? 'RWF',
+      timezone: data.timezone ?? 'Africa/Kigali',
+      address: data.address?.trim() || undefined,
+      phone: data.phone?.trim() || undefined,
+      email: data.email?.trim() || undefined,
+      tax_identifier: data.tax_id?.trim() || undefined,
+    });
+    if (created.user_id !== userId) throw new Error('Business creation returned an unexpected owner.');
+    return businessFromOrganization(created, userId);
   },
 };
+
+function businessFromOrganization(row: BackendOrganizationMembership, userId: string): Business {
+  const org = row.organization;
+  const knownStatuses: SubscriptionStatus[] = [
+    'trialing', 'active', 'pending_verification', 'past_due', 'canceled', 'expired',
+  ];
+  const status = knownStatuses.includes(org.subscription_status)
+    ? org.subscription_status
+    : 'expired';
+  const knownBusinessTypes: BusinessType[] = [
+    'sole_proprietor', 'llc', 'corporation', 'partnership', 'other',
+  ];
+  const address = org.address?.formatted;
+
+  return {
+    id: org.id,
+    owner_id: row.is_owner ? userId : '',
+    name: org.name,
+    legal_name: org.legal_name,
+    industry: org.industry,
+    business_type: knownBusinessTypes.includes(org.business_type as BusinessType)
+      ? org.business_type as BusinessType
+      : 'other',
+    country: org.country,
+    currency: org.currency,
+    currency_exponent: org.currency_exponent,
+    timezone: org.timezone,
+    address: typeof address === 'string' ? address : null,
+    phone: org.phone,
+    email: org.email,
+    tax_id: org.tax_identifier,
+    fiscal_year_start: org.fiscal_year_start,
+    logo_url: null,
+    subscription_plan: null,
+    subscription_status: status,
+    trial_started_at: org.trial_started_at,
+    trial_ends_at: org.trial_ends_at,
+    created_at: org.created_at,
+    updated_at: org.updated_at,
+  };
+}
+
+function membershipFromOrganization(row: BackendOrganizationMembership): Membership {
+  const roles: Record<string, BusinessRole> = {
+    owner: 'owner',
+    admin: 'admin',
+    manager: 'manager',
+    accountant: 'accountant',
+    analyst: 'viewer',
+    employee: 'staff',
+    inventory_staff: 'staff',
+  };
+  return {
+    id: row.membership_id,
+    business_id: row.organization.id,
+    user_id: row.user_id,
+    role: roles[row.role ?? ''] ?? 'staff',
+    invited_email: null,
+    status: 'active',
+    created_at: row.organization.created_at,
+    updated_at: row.organization.updated_at,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Generic table helpers (used by hooks)
@@ -301,6 +365,7 @@ export const productApi = {
     businessId: string,
     data: Partial<Product>,
     idempotencyKey = createIdempotencyKey(),
+    currencyExponent = 2,
   ): Promise<Product> {
     if (data.stock_quantity) {
       throw new Error('Receive opening stock through a purchase so inventory and accounting stay in sync.');
@@ -317,8 +382,8 @@ export const productApi = {
         unit: data.unit ?? 'piece',
         category_id: data.category_id ?? null,
         supplier_id: null,
-        cost_price_cents: moneyToCents(data.cost_price ?? 0),
-        selling_price_cents: moneyToCents(data.selling_price ?? 0),
+        cost_price_cents: moneyToCents(data.cost_price ?? 0, currencyExponent),
+        selling_price_cents: moneyToCents(data.selling_price ?? 0, currencyExponent),
         reorder_level: data.reorder_threshold ?? 5,
         initial_stock: 0,
       },
@@ -375,23 +440,29 @@ export const inventoryApi = {
 
 export const subscriptionApi = {
   async getStatus(businessId: string): Promise<{
-    plan: SubscriptionPlan;
+    plan: SubscriptionPlan | null;
     status: SubscriptionStatus;
     trial_ends_at: string | null;
     daysRemaining: number;
     isTrialActive: boolean;
     hasAccess: boolean;
   }> {
-    const { organization } = await backendAuthApi.me();
+    const { organization } = await backendAuthApi.meForOrganization(businessId);
     if (organization.id !== businessId) throw new Error('Requested business does not match the active BusinessIQ organization.');
 
+    const status = organization.subscription_status;
+    const trialEndsAt = organization.trial_ends_at;
+    const trialEndMs = trialEndsAt ? Date.parse(trialEndsAt) : Number.NaN;
+    const remainingMs = trialEndMs - Date.now();
+    const isTrialActive = status === 'trialing' && remainingMs > 0;
+
     return {
-      plan: 'free',
-      status: 'active',
-      trial_ends_at: null,
-      daysRemaining: 0,
-      isTrialActive: false,
-      hasAccess: true,
+      plan: null,
+      status,
+      trial_ends_at: trialEndsAt,
+      daysRemaining: isTrialActive ? Math.ceil(remainingMs / 86_400_000) : 0,
+      isTrialActive,
+      hasAccess: status === 'active' || isTrialActive,
     };
   },
 
@@ -504,24 +575,162 @@ export const contactApi = {
 // ---------------------------------------------------------------------------
 
 export const expenseApi = {
-  async create(businessId: string, userId: string, data: Partial<Expense>): Promise<Expense> {
-    const { data: expense, error } = await supabase.from('expenses').insert({
+  async list(businessId: string): Promise<Expense[]> {
+    const rows = await backendRequest<Array<{
+      id: string;
+      category_name: string;
+      description: string;
+      amount_cents: number;
+      amount_paid_cents: number;
+      payment_method: 'cash' | 'bank' | 'card' | 'mobile_money' | 'other' | null;
+      incurred_at: string;
+      supplier_id: string | null;
+      notes: string | null;
+      created_by: string | null;
+      created_at: string;
+    }>>('/expenses?limit=100', { organizationId: businessId });
+    return rows.map((row) => ({
+      id: row.id,
       business_id: businessId,
-      category: data.category ?? 'other',
-      description: data.description ?? '',
-      amount: data.amount ?? 0,
-      payment_method: data.payment_method ?? 'cash',
-      expense_date: data.expense_date ?? new Date().toISOString().split('T')[0],
-      supplier_id: null,
+      category: expenseCategoryValue(row.category_name),
+      category_name: row.category_name,
+      description: row.description,
+      amount: row.amount_cents / 100,
+      payment_method: row.payment_method === 'bank' ? 'bank_transfer' : row.payment_method,
+      expense_date: row.incurred_at,
+      supplier_id: row.supplier_id,
       recurring: false,
       recurring_interval: 'none',
-      notes: data.notes ?? null,
-      created_by: userId,
-    }).select().single();
-    if (error) throw error;
-    return expense as Expense;
+      notes: row.notes,
+      created_by: row.created_by ?? '',
+      created_at: row.created_at,
+    }));
+  },
+
+  async create(
+    businessId: string,
+    data: Partial<Omit<Expense, 'amount'>> & { amount?: number | string },
+    idempotencyKey = createIdempotencyKey(),
+    currencyExponent = 2,
+  ): Promise<Expense> {
+    const category = data.category ?? 'other';
+    const categoryName = expenseCategoryLabel(category);
+    const categoryId = await ensureExpenseCategory(businessId, category, categoryName);
+    const amountCents = moneyToCents(data.amount ?? 0, currencyExponent);
+    const paymentMethod = data.payment_method === 'bank_transfer' ? 'bank' : data.payment_method ?? 'cash';
+    const row = await backendRequest<{
+      id: string;
+      category_name: string;
+      description: string;
+      amount_cents: number;
+      amount_paid_cents: number;
+      payment_method: 'cash' | 'bank' | 'card' | 'mobile_money' | 'other' | null;
+      incurred_at: string;
+      supplier_id: string | null;
+      notes: string | null;
+      created_by: string | null;
+      created_at: string;
+    }>('/expenses', {
+      method: 'POST',
+      organizationId: businessId,
+      idempotencyKey,
+      body: {
+        category_id: categoryId,
+        amount_cents: amountCents,
+        amount_paid_cents: amountCents,
+        payment_method: paymentMethod,
+        incurred_at: data.expense_date ?? new Date().toISOString().slice(0, 10),
+        supplier_id: null,
+        description: data.description ?? '',
+        notes: data.notes ?? null,
+      },
+    });
+    return {
+      id: row.id,
+      business_id: businessId,
+      category,
+      category_name: row.category_name,
+      description: row.description,
+      amount: row.amount_cents / 100,
+      payment_method: row.payment_method === 'bank' ? 'bank_transfer' : row.payment_method,
+      expense_date: row.incurred_at,
+      supplier_id: row.supplier_id,
+      recurring: false,
+      recurring_interval: 'none',
+      notes: row.notes,
+      created_by: row.created_by ?? '',
+      created_at: row.created_at,
+    };
   },
 };
+
+function expenseCategoryLabel(category: ExpenseCategory): string {
+  const labels: Record<ExpenseCategory, string> = {
+    rent: 'Rent',
+    utilities: 'Utilities',
+    salaries: 'Salaries',
+    supplies: 'Supplies',
+    marketing: 'Marketing',
+    transport: 'Transport',
+    maintenance: 'Maintenance',
+    professional_fees: 'Professional Fees',
+    insurance: 'Insurance',
+    taxes: 'Taxes',
+    other: 'Other',
+  };
+  return labels[category];
+}
+
+function expenseCategoryValue(categoryName: string): ExpenseCategory {
+  const normalized = categoryName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const values: ExpenseCategory[] = [
+    'rent', 'utilities', 'salaries', 'supplies', 'marketing', 'transport',
+    'maintenance', 'professional_fees', 'insurance', 'taxes', 'other',
+  ];
+  return values.includes(normalized as ExpenseCategory) ? normalized as ExpenseCategory : 'other';
+}
+
+async function ensureExpenseCategory(
+  businessId: string,
+  category: ExpenseCategory,
+  name: string,
+): Promise<string> {
+  type ExpenseCategoryRow = { id: string; name: string; account_id: string };
+  const listCategories = () => backendRequest<ExpenseCategoryRow[]>('/expense-categories', {
+    organizationId: businessId,
+  });
+  let categories = await listCategories();
+  const existing = categories.find((item) => item.name.trim().toLowerCase() === name.toLowerCase());
+  if (existing) return existing.id;
+
+  const accounts = await backendRequest<Array<{ id: string; account_code: string; name: string }>>(
+    '/expense-accounts', { organizationId: businessId },
+  );
+  const accountCodes: Record<ExpenseCategory, string> = {
+    rent: '6000', utilities: '6200', salaries: '6100', supplies: '6300',
+    marketing: '6900', transport: '6900', maintenance: '6900', professional_fees: '6900',
+    insurance: '6900', taxes: '6900', other: '6900',
+  };
+  const account = accounts.find((item) => item.account_code === accountCodes[category])
+    ?? accounts.find((item) => item.account_code === '6900')
+    ?? accounts[0];
+  if (!account) throw new Error('No active expense account is configured for this business.');
+
+  try {
+    const created = await backendRequest<ExpenseCategoryRow>('/expense-categories', {
+      method: 'POST',
+      organizationId: businessId,
+      body: { name, account_id: account.id },
+    });
+    return created.id;
+  } catch (error) {
+    // Another request may have created the same category concurrently.
+    categories = await listCategories();
+    const concurrent = categories.find((item) => item.name.trim().toLowerCase() === name.toLowerCase());
+    if (concurrent) return concurrent.id;
+    throw error;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Sales API
@@ -548,6 +757,7 @@ export const saleApi = {
       contact_name: row.customer_name,
       total: row.total_cents / 100,
       paid_amount: row.amount_paid_cents / 100,
+      sale_date: row.sale_date,
       status: row.status as SaleStatus,
       payment_method: null,
       notes: null,
